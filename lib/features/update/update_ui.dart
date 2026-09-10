@@ -234,7 +234,7 @@ class _UpdateTileState extends ConsumerState<UpdateTile> {
               if (release != null) return showUpdateSheet(context, release);
               setState(() => _checking = true);
               final found = await ref.read(updateProvider.notifier).check(force: true);
-              if (!mounted) return;
+              if (!context.mounted) return;
               setState(() => _checking = false);
               if (found != null) {
                 await showUpdateSheet(context, found);
