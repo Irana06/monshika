@@ -174,14 +174,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              EnsoRing(
-                progress: 1,
-                size: 180,
-                stroke: 12,
-                color: WaColors.beni,
-                trackColor: Colors.transparent,
-                child: Text('鹿', style: AppTheme.serif(size: 72, weight: FontWeight.w700)),
-              ).animate().scale(begin: const Offset(0.8, 0.8), duration: 700.ms, curve: Curves.easeOutBack).fadeIn(),
+              Image.asset('assets/logo.png', width: 168, height: 168, filterQuality: FilterQuality.medium)
+                  .animate()
+                  .scale(begin: const Offset(0.8, 0.8), duration: 700.ms, curve: Curves.easeOutBack)
+                  .fadeIn(),
               const SizedBox(height: 32),
               Text('Monshika', style: AppTheme.serif(size: 40, weight: FontWeight.w700, letterSpacing: 2))
                   .animate()

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monshika · 紋鹿</title>
 <meta name="description" content="Monshika — aplikasi pengelola uang bernuansa Jepang dengan widget beranda, data lokal, dan backup Google Drive.">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta property="og:image" content="https://irana06.github.io/monshika/logo.png">
 <style>
   :root { --sumi:#0F0F14; --card:#17171E; --border:#2A2A35; --washi:#EDE6D6; --muted:#9A948A; --kin:#C9A45C; --beni:#D9534A; --matcha:#9CC48F; }
   * { box-sizing: border-box; }
@@ -12,9 +14,7 @@
   main { max-width: 860px; margin: 0 auto; padding: 64px 20px 80px; }
   .serif { font-family: "Shippori Mincho","Noto Serif JP",Georgia,serif; }
   .hero { text-align: center; }
-  .enso { width: 132px; height: 132px; margin: 0 auto 20px; border-radius: 50%; border: 10px solid var(--beni);
-          border-top-color: transparent; transform: rotate(35deg); display: grid; place-items: center; }
-  .enso span { transform: rotate(-35deg); font-size: 52px; }
+  .logo { width: 148px; height: 148px; display: block; margin: 0 auto 20px; filter: drop-shadow(0 12px 30px rgba(217,83,74,.25)); }
   h1 { font-size: 2.6rem; margin: 0; letter-spacing: 2px; }
   .tag { color: var(--kin); margin: 4px 0 0; font-size: 1.15rem; }
   .sub { color: var(--muted); margin: 4px 0 28px; }
@@ -32,7 +32,7 @@
 <body>
 <main>
   <section class="hero">
-    <div class="enso serif"><span>鹿</span></div>
+    <img class="logo" src="logo.png" alt="Logo Monshika">
     <h1 class="serif">Monshika</h1>
     <p class="tag serif">お金を、心穏やかに。</p>
     <p class="sub">Kelola uang dengan tenang.</p>

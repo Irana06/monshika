@@ -305,7 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 applicationName: 'Monshika',
                 applicationVersion: '1.0.0',
                 applicationLegalese: '© 2026 Shicomp',
-                applicationIcon: const KanjiBadge(glyph: '鹿', color: WaColors.beni, size: 48),
+                applicationIcon: Image.asset('assets/logo.png', width: 56, height: 56),
                 children: [
                   const SizedBox(height: 12),
                   Text(
