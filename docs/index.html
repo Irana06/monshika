@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monshika · 紋鹿</title>
+<meta name="description" content="Monshika — aplikasi pengelola uang bernuansa Jepang dengan widget beranda, data lokal, dan backup Google Drive.">
+<style>
+  :root { --sumi:#0F0F14; --card:#17171E; --border:#2A2A35; --washi:#EDE6D6; --muted:#9A948A; --kin:#C9A45C; --beni:#D9534A; --matcha:#9CC48F; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--sumi); color:var(--washi); font:16px/1.7 "Noto Sans JP","Segoe UI",system-ui,sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 64px 20px 80px; }
+  .serif { font-family: "Shippori Mincho","Noto Serif JP",Georgia,serif; }
+  .hero { text-align: center; }
+  .enso { width: 132px; height: 132px; margin: 0 auto 20px; border-radius: 50%; border: 10px solid var(--beni);
+          border-top-color: transparent; transform: rotate(35deg); display: grid; place-items: center; }
+  .enso span { transform: rotate(-35deg); font-size: 52px; }
+  h1 { font-size: 2.6rem; margin: 0; letter-spacing: 2px; }
+  .tag { color: var(--kin); margin: 4px 0 0; font-size: 1.15rem; }
+  .sub { color: var(--muted); margin: 4px 0 28px; }
+  .btn { display: inline-block; background: var(--kin); color: var(--sumi); font-weight: 700; text-decoration: none;
+         padding: 12px 22px; border-radius: 14px; margin: 4px; }
+  .btn.ghost { background: transparent; color: var(--washi); border: 1px solid var(--border); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 48px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
+  .card b { display: block; margin-bottom: 4px; }
+  .kanji { color: var(--kin); font-size: 1.4rem; margin-right: 6px; }
+  footer { margin-top: 56px; text-align: center; color: var(--muted); font-size: .9rem; }
+  a { color: var(--kin); }
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="enso serif"><span>鹿</span></div>
+    <h1 class="serif">Monshika</h1>
+    <p class="tag serif">お金を、心穏やかに。</p>
+    <p class="sub">Kelola uang dengan tenang.</p>
+    <a class="btn" href="https://github.com/Irana06/monshika/releases/latest">Unduh APK Android</a>
+    <a class="btn ghost" href="https://github.com/Irana06/monshika">Kode sumber</a>
+  </section>
+
+  <section class="grid">
+    <div class="card"><b><span class="kanji serif">窓</span>8 widget beranda</b>Catat pemasukan &amp; pengeluaran langsung dari home screen tanpa membuka aplikasi.</div>
+    <div class="card"><b><span class="kanji serif">速</span>Catat cepat</b>Ketik <code>kopi 25rb</code> dan nominal, kategori, serta dompet terisi otomatis.</div>
+    <div class="card"><b><span class="kanji serif">算</span>Budget &amp; target</b>Budget dengan rollover, target tabungan omamori, utang, cicilan, dan langganan.</div>
+    <div class="card"><b><span class="kanji serif">簿</span>Kakeibo</b>Metode pembukuan Jepang: rencana bulanan, 4 pilar, dan refleksi.</div>
+    <div class="card"><b><span class="kanji serif">替</span>Multi-mata uang</b>Kurs realtime, emas per gram, dan kripto.</div>
+    <div class="card"><b><span class="kanji serif">蔵</span>Data milikmu</b>Tersimpan lokal di HP. Backup terenkripsi opsional ke Google Drive milikmu sendiri.</div>
+  </section>
+
+  <footer>
+    © 2026 Shicomp · <a href="privacy.html">Kebijakan Privasi</a> · <a href="mailto:kirainova11@gmail.com">Kontak</a>
+  </footer>
+</main>
+</body>
+</html>

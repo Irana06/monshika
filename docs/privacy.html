@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kebijakan Privasi · Monshika</title>
+<style>
+  :root { --sumi:#0F0F14; --card:#17171E; --border:#2A2A35; --washi:#EDE6D6; --muted:#9A948A; --kin:#C9A45C; --beni:#D9534A; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--sumi); color:var(--washi); font:16px/1.7 "Noto Sans JP","Segoe UI",system-ui,sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1, h2 { font-family: "Shippori Mincho","Noto Serif JP",Georgia,serif; font-weight:600; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 { font-size: 1.25rem; margin: 36px 0 8px; color: var(--kin); }
+  .sub { color: var(--muted); margin: 0 0 32px; }
+  a { color: var(--kin); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+  ul { padding-left: 1.2em; }
+  li { margin: 4px 0; }
+  code { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: .9em; }
+  footer { margin-top: 48px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--border); padding-top: 16px; }
+  .enso { color: var(--beni); font-family: "Shippori Mincho",serif; }
+</style>
+</head>
+<body>
+<main>
+  <p class="enso">紋鹿 · Monshika</p>
+  <h1>Kebijakan Privasi</h1>
+  <p class="sub">Berlaku sejak 10 September 2026</p>
+
+  <div class="card">
+    <strong>Ringkasnya:</strong> semua data keuanganmu tersimpan di HP-mu sendiri. Monshika tidak punya server,
+    tidak memakai iklan, tidak memakai analitik, dan tidak menjual atau membagikan data kepada siapa pun.
+  </div>
+
+  <h2>1. Data yang disimpan</h2>
+  <p>Monshika menyimpan data yang kamu masukkan: dompet, transaksi, kategori, budget, target, utang/piutang,
+  jadwal berulang, cicilan, catatan Kakeibo, foto struk, dan pengaturan aplikasi. Semuanya tersimpan
+  <strong>secara lokal</strong> di penyimpanan internal HP dan tidak dikirim ke server Monshika, karena Monshika tidak punya server.</p>
+
+  <h2>2. Backup ke Google Drive (opsional)</h2>
+  <p>Jika kamu memilih login dengan Google untuk backup:</p>
+  <ul>
+    <li>Monshika hanya meminta izin <code>drive.appdata</code>, yaitu akses ke folder tersembunyi khusus aplikasi di Google Drive milikmu.
+      Monshika <strong>tidak bisa melihat, membaca, atau mengubah</strong> file lain di Drive-mu.</li>
+    <li>File backup dikirim langsung dari HP-mu ke Google Drive milikmu. Jika kamu mengaktifkan sandi backup,
+      file dienkripsi dengan AES-256 sebelum diunggah.</li>
+    <li>Monshika memakai alamat email akunmu hanya untuk menampilkan akun yang sedang terhubung di dalam aplikasi.</li>
+    <li>Kamu bisa memutus koneksi kapan saja dari menu Backup, atau lewat
+      <a href="https://myaccount.google.com/connections">pengaturan akun Google</a>. Backup di Drive bisa dihapus dari aplikasi,
+      atau lewat Google Drive › Setelan › Kelola aplikasi.</li>
+  </ul>
+  <p>Penggunaan dan transfer informasi yang diterima dari Google API mematuhi
+  <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+  termasuk ketentuan Limited Use.</p>
+
+  <h2>3. Koneksi internet lainnya</h2>
+  <ul>
+    <li><strong>Kurs mata uang:</strong> aplikasi mengambil data kurs publik dari Coinbase dan currency-api (via jsDelivr / Cloudflare Pages).
+      Permintaan ini tidak berisi data keuanganmu.</li>
+    <li><strong>Font:</strong> font Google Fonts dapat diunduh saat pertama kali dipakai.</li>
+  </ul>
+
+  <h2>4. Izin aplikasi</h2>
+  <ul>
+    <li><strong>Notifikasi:</strong> pengingat mencatat, tagihan jatuh tempo, dan peringatan budget. Semuanya dijadwalkan lokal.</li>
+    <li><strong>Kamera / galeri:</strong> hanya saat kamu melampirkan foto struk.</li>
+    <li><strong>Biometrik:</strong> untuk membuka kunci aplikasi. Data sidik jari/wajah tidak pernah diakses Monshika; verifikasi dilakukan oleh sistem Android/iOS.</li>
+    <li><strong>Widget beranda:</strong> ringkasan data disimpan lokal untuk ditampilkan di widget. Nominal bisa disembunyikan dari pengaturan.</li>
+  </ul>
+
+  <h2>5. Menghapus data</h2>
+  <p>Kamu bisa menghapus semua data dari <em>Backup &amp; Export › Hapus semua data</em>, atau dengan meng-uninstall aplikasi.
+  Karena data tidak disimpan di server Monshika, tidak ada salinan lain yang tersisa selain file backup yang kamu buat sendiri.</p>
+
+  <h2>6. Anak-anak</h2>
+  <p>Monshika tidak ditujukan untuk anak di bawah 13 tahun dan tidak dengan sengaja mengumpulkan data dari mereka.</p>
+
+  <h2>7. Perubahan kebijakan</h2>
+  <p>Kebijakan ini dapat diperbarui. Versi terbaru selalu tersedia di halaman ini.</p>
+
+  <h2>8. Kontak</h2>
+  <p>Pertanyaan tentang privasi: <a href="mailto:kirainova11@gmail.com">kirainova11@gmail.com</a></p>
+
+  <footer>© 2026 Shicomp · <a href="index.html">Monshika</a> · <a href="https://github.com/Irana06/monshika">GitHub</a></footer>
+</main>
+</body>
+</html>
