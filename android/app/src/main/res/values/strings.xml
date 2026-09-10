@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Monshika</string>
+
+    <string name="widget_quick_add">Monshika · Catat Cepat</string>
+    <string name="widget_quick_add_desc">Catat pengeluaran/pemasukan tanpa membuka aplikasi</string>
+    <string name="widget_summary">Monshika · Ringkasan</string>
+    <string name="widget_summary_desc">Total saldo, arus kas bulan ini, dan tombol cepat</string>
+    <string name="widget_safe_spend">Monshika · Sisa Aman</string>
+    <string name="widget_safe_spend_desc">Jatah belanja yang tersisa hari ini</string>
+    <string name="widget_chart">Monshika · Grafik</string>
+    <string name="widget_chart_desc">Grafik pemasukan &amp; pengeluaran 7 hari</string>
+    <string name="widget_preset">Monshika · Preset</string>
+    <string name="widget_preset_desc">Catat transaksi favorit sekali tap</string>
+    <string name="widget_budget">Monshika · Budget</string>
+    <string name="widget_budget_desc">Pemakaian budget teratas</string>
+    <string name="widget_upcoming">Monshika · Tagihan</string>
+    <string name="widget_upcoming_desc">Tagihan, cicilan &amp; jatuh tempo 14 hari</string>
+    <string name="widget_goal">Monshika · Target</string>
+    <string name="widget_goal_desc">Progres target tabungan</string>
+</resources>

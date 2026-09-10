@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="serif"
+        android:text="算 Budget"
+        android:textColor="#C9A45C"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="Belum ada budget"
+        android:textColor="#9A948A"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <LinearLayout android:id="@+id/b_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:id="@+id/b_0_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="12sp" />
+            <TextView android:id="@+id/b_0_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#C9A45C" android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <ProgressBar android:id="@+id/b_0_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:indeterminate="false" android:max="100" android:progressDrawable="@drawable/widget_progress" />
+        <TextView android:id="@+id/b_0_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#9A948A" android:textSize="10sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/b_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:id="@+id/b_1_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="12sp" />
+            <TextView android:id="@+id/b_1_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#C9A45C" android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <ProgressBar android:id="@+id/b_1_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:indeterminate="false" android:max="100" android:progressDrawable="@drawable/widget_progress" />
+        <TextView android:id="@+id/b_1_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#9A948A" android:textSize="10sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/b_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:id="@+id/b_2_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="12sp" />
+            <TextView android:id="@+id/b_2_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#C9A45C" android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <ProgressBar android:id="@+id/b_2_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="3dp" android:indeterminate="false" android:max="100" android:progressDrawable="@drawable/widget_progress" />
+        <TextView android:id="@+id/b_2_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#9A948A" android:textSize="10sp" />
+    </LinearLayout>
+</LinearLayout>

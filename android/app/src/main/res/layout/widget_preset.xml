@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="5dp">
+
+    <LinearLayout
+        android:id="@+id/row"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/preset_0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_neutral"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/preset_0_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" />
+            <TextView android:id="@+id/preset_0_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:paddingHorizontal="4dp" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/preset_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_neutral"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/preset_1_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" />
+            <TextView android:id="@+id/preset_1_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:paddingHorizontal="4dp" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/preset_2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_neutral"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/preset_2_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" />
+            <TextView android:id="@+id/preset_2_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:paddingHorizontal="4dp" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/preset_3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn_neutral"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/preset_3_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="15sp" />
+            <TextView android:id="@+id/preset_3_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:ellipsize="end" android:paddingHorizontal="4dp" android:singleLine="true" android:textColor="#EDE6D6" android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="札 Buat preset di Monshika"
+        android:textColor="#9A948A"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/last_action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:singleLine="true"
+        android:textColor="#9CC48F"
+        android:textSize="10sp"
+        android:visibility="gone" />
+</LinearLayout>

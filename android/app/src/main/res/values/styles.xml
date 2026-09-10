@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema saat proses Android dimulai (splash). AppCompat dibutuhkan local_auth. -->
+    <style name="LaunchTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:statusBarColor">@color/sumi</item>
+        <item name="android:navigationBarColor">@color/sumi</item>
+    </style>
+
+    <style name="NormalTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/sumi</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/sumi</item>
+    </style>
+
+    <!-- Dialog quick-add dari widget: jendela transparan di atas beranda. -->
+    <style name="QuickAddTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
