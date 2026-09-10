@@ -6,12 +6,14 @@
     android:background="@drawable/widget_bg"
     android:gravity="center_vertical"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
     <TextView
+        android:id="@+id/label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="serif"
+        android:singleLine="true"
         android:text="今日 · sisa aman"
         android:textColor="#C9A45C"
         android:textSize="11sp" />
@@ -20,21 +22,20 @@
         android:id="@+id/safe_left"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:fontFamily="serif"
         android:singleLine="true"
         android:text="–"
         android:textColor="#EDE6D6"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
     <ProgressBar
         android:id="@+id/progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="6dp"
+        android:layout_height="5dp"
+        android:layout_marginTop="4dp"
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@drawable/widget_progress" />
@@ -43,7 +44,7 @@
         android:id="@+id/per_day"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:singleLine="true"
         android:textColor="#9A948A"
         android:textSize="11sp" />

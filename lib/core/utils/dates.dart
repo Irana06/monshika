@@ -37,11 +37,17 @@ DateTime addMonths(DateTime d, int months) {
 }
 
 /// Periode bulanan yang dimulai pada [startDay] (mis. tanggal gajian 25).
+/// Tanggal 29–31 dipotong ke hari terakhir pada bulan yang lebih pendek.
 DateRange monthRange(DateTime ref, {int startDay = 1}) {
-  final day = startDay.clamp(1, 28);
-  var start = DateTime(ref.year, ref.month, day);
-  if (ref.isBefore(start)) start = DateTime(ref.year, ref.month - 1, day);
-  return DateRange(start, DateTime(start.year, start.month + 1, day));
+  final day = startDay.clamp(1, 31);
+  DateTime startOf(int year, int month) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, day > lastDay ? lastDay : day);
+  }
+
+  var start = startOf(ref.year, ref.month);
+  if (ref.isBefore(start)) start = startOf(ref.year, ref.month - 1);
+  return DateRange(start, startOf(start.year, start.month + 1));
 }
 
 /// [firstWeekday] mengikuti DateTime.monday (1) … DateTime.sunday (7).

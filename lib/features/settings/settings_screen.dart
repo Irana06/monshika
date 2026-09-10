@@ -86,11 +86,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.event_repeat),
               title: const Text('Awal periode bulanan'),
-              subtitle: Text('Tanggal ${s.monthStartDay} setiap bulan', style: muted),
-              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                IconButton(onPressed: s.monthStartDay > 1 ? () => _n.setMonthStartDay(s.monthStartDay - 1) : null, icon: const Icon(Icons.remove)),
-                IconButton(onPressed: s.monthStartDay < 28 ? () => _n.setMonthStartDay(s.monthStartDay + 1) : null, icon: const Icon(Icons.add)),
-              ]),
+              subtitle: Text(
+                s.monthStartDay == 1 ? 'Kalender biasa (tanggal 1 – akhir bulan)' : 'Mulai tanggal ${s.monthStartDay} setiap bulan',
+                style: muted,
+              ),
+              trailing: const Icon(Icons.edit_outlined, size: 20),
+              onTap: () async {
+                final ctrl = TextEditingController(text: s.monthStartDay == 1 ? '' : '${s.monthStartDay}');
+                final result = await showDialog<int>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Awal periode bulanan'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Isi tanggal gajian kalau ingin budget & laporan dihitung mulai tanggal itu. '
+                          'Kosongkan untuk kalender biasa.',
+                          style: muted,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: ctrl,
+                          autofocus: true,
+                          maxLength: 2,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(hintText: 'mis. 25 (1–31)', counterText: ''),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, 1), child: const Text('Kalender biasa')),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(ctx, (int.tryParse(ctrl.text.trim()) ?? 1).clamp(1, 31)),
+                        child: const Text('Simpan'),
+                      ),
+                    ],
+                  ),
+                );
+                if (result != null) await _n.setMonthStartDay(result);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.calendar_view_week),

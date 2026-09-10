@@ -5,9 +5,10 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
     <LinearLayout
+        android:id="@+id/header_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -17,7 +18,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="serif"
-            android:text="図 7 hari terakhir"
+            android:singleLine="true"
+            android:text="図 7 hari"
             android:textColor="#C9A45C"
             android:textSize="12sp" />
 
@@ -25,6 +27,7 @@
             android:id="@+id/week_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:singleLine="true"
             android:textColor="#E0605A"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -34,7 +37,7 @@
         android:id="@+id/chart"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:contentDescription="Grafik 7 hari"
         android:scaleType="fitCenter" />

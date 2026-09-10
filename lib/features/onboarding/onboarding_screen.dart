@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _index = 0;
   final _name = TextEditingController();
   String _currency = 'IDR';
-  int _startDay = 1;
+  bool _usePayday = false;
+  final _payday = TextEditingController();
   bool _presets = true;
   bool _busy = false;
 
@@ -43,6 +45,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _AccountDraft('bank', TextEditingController(text: 'Bank'), true),
     _AccountDraft('ewallet', TextEditingController(text: 'E-Wallet'), false),
   ];
+
+  int get _startDay => _usePayday ? (int.tryParse(_payday.text.trim()) ?? 1).clamp(1, 31) : 1;
 
   void _next() {
     FocusScope.of(context).unfocus();
@@ -221,22 +225,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
           ),
         ),
-        LabeledField(
-          label: 'Awal periode bulanan (tanggal gajian)',
-          child: WaCard(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
-              children: [
-                Expanded(child: Text('Setiap tanggal $_startDay', style: AppTheme.sans(size: 15))),
-                IconButton(onPressed: _startDay > 1 ? () => setState(() => _startDay--) : null, icon: const Icon(Icons.remove)),
-                IconButton(onPressed: _startDay < 28 ? () => setState(() => _startDay++) : null, icon: const Icon(Icons.add)),
+        WaCard(
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _usePayday,
+                onChanged: (v) => setState(() => _usePayday = v),
+                title: Text('Hitung bulan dari tanggal gajian', style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
+                subtitle: Text(
+                  'Opsional. Kalau mati, periode bulanan mengikuti kalender (tanggal 1 – akhir bulan).',
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                ),
+              ),
+              if (_usePayday) ...[
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextField(
+                    controller: _payday,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+                    decoration: const InputDecoration(labelText: 'Tanggal gajian (1–31)', hintText: 'mis. 25'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Gaji sering telat? Tidak masalah — tanggal ini hanya untuk memotong periode budget & laporan, '
+                  'bukan jadwal gaji masuk. Bisa diubah kapan saja di Pengaturan.',
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                ),
               ],
-            ),
+            ],
           ),
-        ),
-        Text(
-          'Kalau gajian tanggal 25, pilih 25 supaya budget & laporan bulanan dihitung dari 25 ke 24 bulan berikutnya.',
-          style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
         ),
       ],
     );
@@ -283,6 +307,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
           ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.currency_exchange, size: 18, color: WaColors.accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Punya saldo dolar (PayPal), yen, atau mata uang lain? Setelah ini tambahkan di Lainnya › Dompet '
+                'dan pilih mata uangnya. Kurs dikonversi otomatis, dan bisa diisi manual sesuai kurs bank.',
+                style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _presets,

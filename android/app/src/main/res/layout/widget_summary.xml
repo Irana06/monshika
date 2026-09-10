@@ -4,10 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
+    android:gravity="center_vertical"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="12dp">
 
     <LinearLayout
+        android:id="@+id/header_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -17,6 +19,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="serif"
+            android:singleLine="true"
             android:text="総資産 · Monshika"
             android:textColor="#C9A45C"
             android:textSize="11sp" />
@@ -25,6 +28,7 @@
             android:id="@+id/month"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:singleLine="true"
             android:textColor="#9A948A"
             android:textSize="11sp" />
     </LinearLayout>
@@ -33,19 +37,18 @@
         android:id="@+id/total"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:fontFamily="serif"
         android:singleLine="true"
         android:text="Rp ••••••"
         android:textColor="#EDE6D6"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold" />
 
     <LinearLayout
+        android:id="@+id/flow_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:orientation="horizontal">
 
         <TextView
@@ -80,37 +83,38 @@
         android:textSize="12sp" />
 
     <LinearLayout
+        android:id="@+id/buttons_row"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="6dp"
-        android:layout_weight="1"
-        android:gravity="bottom"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/btn_expense"
             android:layout_width="0dp"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_expense"
             android:gravity="center"
-            android:text="− Pengeluaran"
+            android:singleLine="true"
+            android:text="− 出"
             android:textColor="#E0605A"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/btn_income"
             android:layout_width="0dp"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_income"
             android:gravity="center"
-            android:text="+ Pemasukan"
+            android:singleLine="true"
+            android:text="+ 入"
             android:textColor="#9CC48F"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
