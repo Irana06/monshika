@@ -10,8 +10,10 @@ import 'backup_service.dart';
 import 'drive_service.dart';
 import 'home_widget_sync.dart';
 import 'money_actions.dart';
+import 'notification_service.dart';
 import 'rates_service.dart';
 import 'security_service.dart';
+import 'update_service.dart';
 
 const kPeriodicTask = 'monshika-periodic';
 
@@ -49,6 +51,7 @@ void workmanagerDispatcher() {
       await RatesService.refresh(db);
       await HomeWidgetSync.refresh(db);
       await runAutoBackupIfDue(db);
+      await notifyUpdateIfAvailable();
     } catch (e) {
       debugPrint('Background task error: $e');
     } finally {
@@ -66,6 +69,18 @@ Future<void> registerBackgroundTasks() async {
     frequency: const Duration(hours: 1),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
+}
+
+/// Notifikasi sekali per versi saat ada rilis baru di GitHub.
+Future<void> notifyUpdateIfAvailable() async {
+  try {
+    final release = await UpdateService.check();
+    if (release == null || await UpdateService.wasNotified(release.version)) return;
+    await NotificationService.instance.showUpdateAvailable(release.version);
+    await UpdateService.markNotified(release.version);
+  } catch (e) {
+    debugPrint('Update check failed: $e');
+  }
 }
 
 /// Backup otomatis ke Google Drive bila sudah waktunya.

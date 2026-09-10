@@ -132,6 +132,27 @@ class NotificationService {
     );
   }
 
+  static const _updateId = 9000;
+
+  Future<void> showUpdateAvailable(String version) async {
+    await init();
+    await _plugin.show(
+      id: _updateId,
+      title: '🦌 Monshika v$version tersedia',
+      body: 'Buka aplikasi untuk melihat yang baru & memperbarui.',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'monshika_update',
+          'Pembaruan aplikasi',
+          channelDescription: 'Pemberitahuan saat versi baru Monshika dirilis',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
   Future<void> showSimple(int id, String title, String body) async {
     await init();
     await _plugin.show(

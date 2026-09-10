@@ -19,6 +19,7 @@ import '../presets/presets_screen.dart';
 import '../recurring/recurring_screen.dart';
 import '../settings/settings_screen.dart';
 import '../split_bill/split_bill_screen.dart';
+import '../update/update_ui.dart';
 import '../widgets_guide/widgets_guide_screen.dart';
 
 class _Item {
@@ -59,6 +60,7 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(settingsProvider);
     final streak = ref.watch(streakProvider).value ?? 0;
+    final version = ref.watch(appVersionProvider).value;
     return Scaffold(
       appBar: AppBar(title: const Text('Lainnya · その他')),
       body: ListView(
@@ -93,6 +95,7 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const UpdateBanner(),
           for (final g in _groups) ...[
             SectionHeader(title: g.$2, jp: g.$1),
             GridView.count(
@@ -120,7 +123,12 @@ class MoreScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 24),
-          Center(child: Text('Monshika · 紋鹿 · v1.0.0', style: AppTheme.serif(size: 12, color: WaColors.washiFaint))),
+          Center(
+            child: Text(
+              'Monshika · 紋鹿${version == null ? '' : ' · v$version'}',
+              style: AppTheme.serif(size: 12, color: WaColors.washiFaint),
+            ),
+          ),
         ],
       ),
     );

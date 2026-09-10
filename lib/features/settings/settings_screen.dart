@@ -14,6 +14,7 @@ import '../backup/backup_screen.dart';
 import '../categories/categories_screen.dart';
 import '../currency/currency_screen.dart';
 import '../lock/lock_screen.dart';
+import '../update/update_ui.dart';
 import '../widgets_guide/widgets_guide_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -57,6 +58,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
         children: [
+          const UpdateBanner(),
+          _section('新', 'Pembaruan', [const UpdateTile()]),
           _section('人', 'Profil', [
             ListTile(
               leading: const Icon(Icons.person_outline),
