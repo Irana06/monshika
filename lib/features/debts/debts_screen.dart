@@ -394,11 +394,12 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 avatar: const Icon(Icons.alarm, size: 16),
                 label: Text(_due == null ? 'Jatuh tempo' : fmtDateShort(_due!)),
                 onPressed: () async {
+                  // Tenggat boleh di masa lalu (utang lama), default = tanggal utang + 1 bulan.
                   final d = await showDatePicker(
                     context: context,
-                    initialDate: _due ?? DateTime.now().add(const Duration(days: 30)),
-                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                    lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    initialDate: _due ?? addMonths(_date, 1),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 30)),
                   );
                   setState(() => _due = d);
                 },

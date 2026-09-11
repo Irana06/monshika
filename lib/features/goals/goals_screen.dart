@@ -420,7 +420,7 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
                 final d = await showDatePicker(
                   context: context,
                   initialDate: _deadline ?? DateTime.now().add(const Duration(days: 180)),
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                  firstDate: DateTime(2000),
                   lastDate: DateTime.now().add(const Duration(days: 365 * 30)),
                 );
                 setState(() => _deadline = d);

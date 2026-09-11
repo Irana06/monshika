@@ -212,8 +212,8 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
             onTap: () async {
               final d = await showDatePicker(
                 context: context,
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                 initialDate: DateTime.now().add(const Duration(days: 7)),
               );
               if (d != null) setState(() => _due = d);
