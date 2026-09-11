@@ -103,7 +103,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
     final parsed = _parse();
     final accounts = ref.watch(accountMapProvider);
     final categories = ref.watch(categoryMapProvider);
-    final presets = ref.watch(presetsProvider).value ?? const <Preset>[];
+    final presets = (ref.watch(presetsProvider).value ?? const <Preset>[]).where((p) => p.showInWidget).toList();
     final accountId = _resolveAccount(parsed);
     final account = accounts[accountId];
     final categoryId = _manualCategory ?? parsed.categoryId;

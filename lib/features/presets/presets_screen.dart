@@ -100,7 +100,9 @@ class _PresetList extends ConsumerWidget {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: Text('Tahan & geser untuk mengurutkan. 4 preset teratas yang aktif tampil di widget beranda.',
+        child: Text(
+            'Saklar = aktif. Hanya preset aktif yang tampil di Catat Cepat, Beranda, dan widget '
+            '(widget menampilkan 4 teratas). Tahan & geser untuk mengurutkan.',
             style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
       ),
       Expanded(
@@ -285,7 +287,13 @@ class _PresetFormScreenState extends ConsumerState<PresetFormScreen> {
             ),
           ),
           LabeledField(label: 'Catatan transaksi (opsional)', child: TextField(controller: _note)),
-          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Tampilkan di widget beranda'), value: _widget, onChanged: (v) => setState(() => _widget = v)),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Aktif'),
+            subtitle: Text('Tampil di Catat Cepat, Beranda, dan widget', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            value: _widget,
+            onChanged: (v) => setState(() => _widget = v),
+          ),
           const SizedBox(height: 12),
           FilledButton(onPressed: _save, child: const Text('Simpan')),
         ],

@@ -298,7 +298,7 @@ class _QuickActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final presets = ref.watch(presetsProvider).value ?? const <Preset>[];
+    final presets = (ref.watch(presetsProvider).value ?? const <Preset>[]).where((p) => p.showInWidget).toList();
     final accounts = ref.watch(accountMapProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
