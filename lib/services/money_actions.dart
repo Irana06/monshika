@@ -135,6 +135,52 @@ class MoneyActions {
     });
   }
 
+  /// Utang/piutang dengan tenor: dipecah menjadi [tenor] cicilan bulanan.
+  /// Uang masuk/keluar dompet dicatat sekali sebesar [principal] (bila [accountId] diisi).
+  Future<List<int>> createDebtWithTenor({
+    required String person,
+    required String direction,
+    required double principal,
+    required List<double> installments,
+    required String currency,
+    required DateTime date,
+    required DateTime firstDueDate,
+    String note = '',
+    int? accountId,
+  }) async {
+    final catId = await _systemCategory(kSystemDebtCategory);
+    final tenor = installments.length;
+    return db.transaction(() async {
+      final ids = <int>[];
+      for (var i = 0; i < tenor; i++) {
+        final label = 'Cicilan ${i + 1}/$tenor';
+        ids.add(await db.into(db.debts).insert(DebtsCompanion.insert(
+              person: person,
+              direction: direction,
+              amount: installments[i],
+              currency: Value(currency),
+              date: date,
+              dueDate: Value(addMonths(firstDueDate, i)),
+              note: Value(note.isEmpty ? label : '$label · $note'),
+              accountId: Value(accountId),
+            )));
+      }
+      if (accountId != null && ids.isNotEmpty) {
+        await db.saveTransaction(TransactionsCompanion.insert(
+          type: direction == 'lend' ? 'expense' : 'income',
+          amount: principal,
+          accountId: accountId,
+          categoryId: Value(catId),
+          date: date,
+          note: Value(direction == 'lend' ? 'Pinjamkan ke $person ($tenor×)' : 'Pinjam dari $person ($tenor×)'),
+          debtId: Value(ids.first),
+          excludeFromStats: const Value(true),
+        ));
+      }
+      return ids;
+    });
+  }
+
   Future<void> addDebtPayment(Debt d, {required double amount, required DateTime date, int? accountId, String note = ''}) async {
     final catId = await _systemCategory(kSystemDebtCategory);
     await db.transaction(() async {

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -309,25 +312,76 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   DateTime? _due;
   int? _accountId;
 
+  // Tenor / cicilan
+  bool _useTenor = false;
+  final _tenor = TextEditingController(text: '3');
+  final _totalPay = TextEditingController();
+  DateTime? _firstDue;
+
+  String get _cur => ref.read(accountMapProvider)[_accountId]?.currency ?? _currency;
+
+  int? get _tenorValue {
+    final n = int.tryParse(_tenor.text.trim());
+    return n == null || n < 2 || n > 360 ? null : n;
+  }
+
+  DateTime get _firstDueDate => _firstDue ?? addMonths(_date, 1);
+
+  /// Nominal per cicilan; pembulatan disesuaikan di cicilan terakhir.
+  List<double> _installments(double total, int n) {
+    final factor = math.pow(10, currencyInfo(_cur).decimals).toDouble();
+    final per = (total / n * factor).floorToDouble() / factor;
+    return [for (var i = 0; i < n - 1; i++) per, double.parse((total - per * (n - 1)).toStringAsFixed(currencyInfo(_cur).decimals))];
+  }
+
   Future<void> _save() async {
     final amount = parseAmount(_amount.text);
     if (_person.text.trim().isEmpty || amount == null || amount <= 0) return showSnack(context, 'Isi nama & nominal');
-    await MoneyActions(ref.read(databaseProvider)).createDebt(
-      person: _person.text.trim(),
-      direction: _direction,
-      amount: amount,
-      currency: _accountId == null ? _currency : ref.read(accountMapProvider)[_accountId]!.currency,
-      date: _date,
-      dueDate: _due,
-      note: _note.text.trim(),
-      accountId: _accountId,
-    );
+    final actions = MoneyActions(ref.read(databaseProvider));
+
+    if (_useTenor) {
+      final n = _tenorValue;
+      if (n == null) return showSnack(context, 'Tenor minimal 2 bulan');
+      final total = parseAmount(_totalPay.text) ?? amount;
+      if (total < amount) return showSnack(context, 'Total bayar tidak boleh lebih kecil dari nominal pinjaman');
+      await actions.createDebtWithTenor(
+        person: _person.text.trim(),
+        direction: _direction,
+        principal: amount,
+        installments: _installments(total, n),
+        currency: _cur,
+        date: _date,
+        firstDueDate: _firstDueDate,
+        note: _note.text.trim(),
+        accountId: _accountId,
+      );
+      if (!mounted) return;
+      await showHanko(context, glyph: '割', label: '$n cicilan dibuat');
+    } else {
+      await actions.createDebt(
+        person: _person.text.trim(),
+        direction: _direction,
+        amount: amount,
+        currency: _cur,
+        date: _date,
+        dueDate: _due,
+        note: _note.text.trim(),
+        accountId: _accountId,
+      );
+    }
     if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final acc = ref.watch(accountMapProvider)[_accountId];
+    final cur = acc?.currency ?? _currency;
+    final amount = parseAmount(_amount.text) ?? 0;
+    final total = parseAmount(_totalPay.text) ?? amount;
+    final n = _tenorValue;
+    final schedule = _useTenor && n != null && total > 0 ? _installments(total, n) : const <double>[];
+    final hidden = ref.watch(settingsProvider).hideBalance;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Catatan Baru')),
       body: ListView(
@@ -343,15 +397,23 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
             onSelectionChanged: (v) => setState(() => _direction = v.first),
           ),
           const SizedBox(height: 16),
-          LabeledField(label: 'Nama orang', child: TextField(controller: _person, textCapitalization: TextCapitalization.words)),
           LabeledField(
-            label: 'Nominal',
+            label: 'Nama orang / layanan',
+            child: TextField(
+              controller: _person,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(hintText: 'mis. Budi, GoPayLater, Kredivo'),
+            ),
+          ),
+          LabeledField(
+            label: 'Nominal pinjaman',
             child: Row(children: [
               Expanded(
                 child: TextField(
                   controller: _amount,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(prefixText: '${currencyInfo(acc?.currency ?? _currency).symbol} '),
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(prefixText: '${currencyInfo(cur).symbol} '),
                 ),
               ),
               if (acc == null) ...[
@@ -388,27 +450,116 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ActionChip(
-                avatar: const Icon(Icons.alarm, size: 16),
-                label: Text(_due == null ? 'Jatuh tempo' : fmtDateShort(_due!)),
-                onPressed: () async {
-                  // Tenggat boleh di masa lalu (utang lama), default = tanggal utang + 1 bulan.
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _due ?? addMonths(_date, 1),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now().add(const Duration(days: 365 * 30)),
-                  );
-                  setState(() => _due = d);
-                },
+            if (!_useTenor) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: ActionChip(
+                  avatar: const Icon(Icons.alarm, size: 16),
+                  label: Text(_due == null ? 'Jatuh tempo' : fmtDateShort(_due!)),
+                  onPressed: () async {
+                    // Tenggat boleh di masa lalu (utang lama), default = tanggal utang + 1 bulan.
+                    final d = await showDatePicker(
+                      context: context,
+                      initialDate: _due ?? addMonths(_date, 1),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now().add(const Duration(days: 365 * 30)),
+                    );
+                    setState(() => _due = d);
+                  },
+                ),
               ),
-            ),
+            ],
           ]),
+          const SizedBox(height: 8),
+          WaCard(
+            padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
+            borderColor: _useTenor ? WaColors.accent.withValues(alpha: 0.5) : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _useTenor,
+                  onChanged: (v) => setState(() => _useTenor = v),
+                  title: Text('Dicicil (tenor)', style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
+                  subtitle: Text(
+                    'Dipecah otomatis jadi cicilan bulanan, lengkap dengan tenggat & pengingat masing-masing.',
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                  ),
+                ),
+                if (_useTenor) ...[
+                  Row(children: [
+                    SizedBox(
+                      width: 110,
+                      child: TextField(
+                        controller: _tenor,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(labelText: 'Tenor', suffixText: 'bulan'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ActionChip(
+                        avatar: const Icon(Icons.event, size: 16),
+                        label: Text('Cicilan pertama ${fmtDateShort(_firstDueDate)}'),
+                        onPressed: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: _firstDueDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now().add(const Duration(days: 365 * 30)),
+                          );
+                          if (d != null) setState(() => _firstDue = d);
+                        },
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _totalPay,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Total yang harus dibayar (opsional)',
+                      helperText: 'Isi jika ada bunga / biaya admin. Kosong = sama dengan nominal pinjaman.',
+                      prefixText: '${currencyInfo(cur).symbol} ',
+                    ),
+                  ),
+                  if (n == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text('Tenor minimal 2 bulan', style: AppTheme.sans(size: 12, color: WaColors.expense)),
+                    )
+                  else if (schedule.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      '$n× ${formatMoney(schedule.first, cur, hidden: hidden)} / bulan'
+                      '${total > amount && amount > 0 ? ' · bunga/biaya ${formatMoney(total - amount, cur, hidden: hidden)}' : ''}',
+                      style: AppTheme.serif(size: 15, weight: FontWeight.w600, color: WaColors.accent),
+                    ),
+                    const SizedBox(height: 6),
+                    for (var i = 0; i < math.min(schedule.length, 12); i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(children: [
+                          SizedBox(width: 44, child: Text('${i + 1}/$n', style: AppTheme.sans(size: 12, color: WaColors.washiMuted))),
+                          Expanded(child: Text(fmtDate(addMonths(_firstDueDate, i)), style: AppTheme.sans(size: 12))),
+                          Text(formatMoney(schedule[i], cur, hidden: hidden), style: AppTheme.sans(size: 12, weight: FontWeight.w600)),
+                        ]),
+                      ),
+                    if (schedule.length > 12)
+                      Text('… dan ${schedule.length - 12} cicilan lagi sampai ${fmtDate(addMonths(_firstDueDate, n - 1))}',
+                          style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                  ],
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           LabeledField(label: 'Catatan', child: TextField(controller: _note, maxLines: 2)),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _save, child: Text(_useTenor && n != null ? 'Simpan $n cicilan' : 'Simpan')),
         ],
       ),
     );

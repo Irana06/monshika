@@ -17,6 +17,11 @@ import 'update_service.dart';
 
 const kPeriodicTask = 'monshika-periodic';
 
+// Catatan: engine latar belakang tidak punya surface. Merender widget Flutter
+// menjadi gambar (grafik widget) di sini membuat raster thread crash (SIGSEGV)
+// pada sebagian GPU, jadi semua refresh di latar belakang memakai renderChart: false.
+// Gambar grafik diperbarui saat aplikasi utama dibuka.
+
 /// Dipanggil saat tombol di widget beranda ditekan (tanpa membuka aplikasi).
 /// URI: `monshika://preset?id=3` atau `monshika://refresh`.
 @pragma('vm:entry-point')
@@ -34,7 +39,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
         lastAction = '✓ ${preset.name} tercatat';
       }
     }
-    await HomeWidgetSync.refresh(db, lastAction: lastAction);
+    await HomeWidgetSync.refresh(db, renderChart: false, lastAction: lastAction);
   } finally {
     await db.close();
   }
@@ -49,7 +54,7 @@ void workmanagerDispatcher() {
     try {
       await MoneyActions(db).processDueRecurrings();
       await RatesService.refresh(db);
-      await HomeWidgetSync.refresh(db);
+      await HomeWidgetSync.refresh(db, renderChart: false);
       await runAutoBackupIfDue(db);
       await notifyUpdateIfAvailable();
     } catch (e) {

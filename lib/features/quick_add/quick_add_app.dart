@@ -59,7 +59,9 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
   }
 
   Future<void> _close({bool saved = false}) async {
-    if (saved) await HomeWidgetSync.refresh(ref.read(databaseProvider), renderChart: true);
+    // Jangan render grafik di engine dialog ini (raster crash di sebagian GPU);
+    // grafik diperbarui saat aplikasi utama dibuka.
+    if (saved) await HomeWidgetSync.refresh(ref.read(databaseProvider), renderChart: false);
     await SystemNavigator.pop();
   }
 
