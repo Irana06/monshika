@@ -10,6 +10,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+enum UpdateDownloadError { noApk, network, server }
+
+class UpdateDownloadException implements Exception {
+  const UpdateDownloadException(this.error);
+  final UpdateDownloadError error;
+
+  @override
+  String toString() => 'UpdateDownloadException($error)';
+}
+
 /// Informasi rilis terbaru dari GitHub Releases.
 class AppRelease {
   const AppRelease({
@@ -161,31 +171,86 @@ abstract final class UpdateService {
   static Future<void> markNotified(String version) async =>
       (await SharedPreferences.getInstance()).setString(_kNotified, version);
 
+  static const _maxAttempts = 6;
+  static const _stallTimeout = Duration(seconds: 30);
+
   /// Unduh APK ke cache aplikasi. [onProgress] menerima 0..1.
+  ///
+  /// Koneksi HP sering putus di tengah jalan, jadi unduhan ditulis ke file
+  /// `.part` dan dilanjutkan dengan header Range. Kalau putus, dicoba lagi
+  /// beberapa kali dari posisi terakhir. Bila tetap gagal, file `.part` disimpan
+  /// sehingga ketukan Perbarui berikutnya melanjutkan, bukan mulai dari nol.
   static Future<File> download(AppRelease r, void Function(double progress) onProgress) async {
     final url = r.apkUrl;
-    if (url == null) throw StateError('Rilis ini tidak punya file APK');
+    if (url == null) throw const UpdateDownloadException(UpdateDownloadError.noApk);
     final dir = Directory('${(await getTemporaryDirectory()).path}/updates');
     await dir.create(recursive: true);
     final file = File('${dir.path}/${r.apkName ?? 'monshika-${r.version}.apk'}');
+    final part = File('${file.path}.part');
+    final expected = r.apkSize;
 
-    final client = http.Client();
-    try {
-      final response = await client.send(http.Request('GET', Uri.parse(url)));
-      if (response.statusCode != 200) throw HttpException('Gagal mengunduh (HTTP ${response.statusCode})');
-      final total = response.contentLength ?? r.apkSize;
-      var received = 0;
-      final sink = file.openWrite();
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (total > 0) onProgress((received / total).clamp(0, 1).toDouble());
-      }
-      await sink.close();
-    } finally {
-      client.close();
+    if (expected > 0 && await file.exists() && await file.length() == expected) {
+      onProgress(1);
+      return file;
     }
-    return file;
+
+    var attempt = 0;
+    while (true) {
+      final client = http.Client();
+      try {
+        var have = await part.exists() ? await part.length() : 0;
+        if (expected > 0 && have > expected) {
+          await part.delete();
+          have = 0;
+        }
+        if (expected > 0 && have == expected) break;
+
+        final request = http.Request('GET', Uri.parse(url));
+        if (have > 0) request.headers['Range'] = 'bytes=$have-';
+        final response = await client.send(request).timeout(_stallTimeout);
+
+        final IOSink sink;
+        var received = have;
+        if (response.statusCode == 206) {
+          sink = part.openWrite(mode: FileMode.append);
+        } else if (response.statusCode == 200) {
+          received = 0;
+          sink = part.openWrite();
+        } else if (response.statusCode == 416 && have > 0) {
+          // Server bilang tidak ada sisa data: anggap selesai bila ukurannya cocok, kalau tidak ulang dari nol.
+          if (expected <= 0 || have == expected) break;
+          await part.delete();
+          throw const SocketException('range mismatch');
+        } else if (response.statusCode >= 500) {
+          throw SocketException('HTTP ${response.statusCode}');
+        } else {
+          throw const UpdateDownloadException(UpdateDownloadError.server);
+        }
+
+        final total = expected > 0 ? expected : received + (response.contentLength ?? 0);
+        try {
+          await for (final chunk in response.stream.timeout(_stallTimeout)) {
+            sink.add(chunk);
+            received += chunk.length;
+            if (total > 0) onProgress((received / total).clamp(0, 1).toDouble());
+          }
+        } finally {
+          await sink.close();
+        }
+        if (expected > 0 && received != expected) throw const SocketException('incomplete download');
+        break;
+      } on UpdateDownloadException {
+        rethrow;
+      } catch (_) {
+        if (++attempt >= _maxAttempts) throw const UpdateDownloadException(UpdateDownloadError.network);
+        await Future<void>.delayed(Duration(seconds: 2 * attempt));
+      } finally {
+        client.close();
+      }
+    }
+
+    if (await file.exists()) await file.delete();
+    return part.rename(file.path);
   }
 
   /// Buka installer Android. Mengembalikan pesan error, atau null bila berhasil.

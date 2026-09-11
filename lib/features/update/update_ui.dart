@@ -78,10 +78,21 @@ class _UpdateSheetState extends ConsumerState<_UpdateSheet> {
                 "Couldn't open the installer ($err). Allow Monshika to install apps, then try again.");
       });
     } catch (e) {
+      debugPrint('Update download failed: $e');
       if (mounted) {
+        final kind = e is UpdateDownloadException ? e.error : UpdateDownloadError.network;
         setState(() {
           _progress = null;
-          _error = t.t('Gagal mengunduh: $e', 'Download failed: $e');
+          _error = switch (kind) {
+            UpdateDownloadError.network => t.t(
+                'Koneksi terputus saat mengunduh. Ketuk Perbarui lagi, unduhan akan dilanjutkan dari yang sudah masuk.',
+                'The connection dropped while downloading. Tap Update again to pick up where it left off.'),
+            UpdateDownloadError.server => t.t(
+                'Server GitHub sedang bermasalah. Coba lagi sebentar lagi, atau unduh lewat browser.',
+                'GitHub is having trouble right now. Try again shortly, or download in your browser.'),
+            UpdateDownloadError.noApk => t.t('File APK untuk versi ini tidak ditemukan. Unduh lewat browser saja.',
+                "Couldn't find the APK for this version. Please download it in your browser."),
+          };
         });
       }
     }
