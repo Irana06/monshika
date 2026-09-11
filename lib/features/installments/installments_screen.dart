@@ -8,6 +8,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/finance.dart';
 import '../../services/money_actions.dart';
@@ -18,6 +19,7 @@ class InstallmentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final items = ref.watch(installmentsProvider).value ?? const <Installment>[];
     final accounts = ref.watch(accountMapProvider);
     final s = ref.watch(settingsProvider);
@@ -26,14 +28,18 @@ class InstallmentsScreen extends ConsumerWidget {
     final remaining = active.fold(0.0, (v, i) => v + i.monthlyAmount * (i.tenor - i.paidCount));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cicilan · 分割')),
+      appBar: AppBar(title: Text(t.withJp('分割', t.t('Cicilan', 'Installments')))),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add-inst',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InstallmentFormScreen())),
         child: const Icon(Icons.add),
       ),
       body: items.isEmpty
-          ? const EmptyState(kanji: '返', title: 'Belum ada cicilan', subtitle: 'Kartu kredit, paylater, KPR, kendaraan, gadget…')
+          ? EmptyState(
+              kanji: '返',
+              title: t.t('Belum ada cicilan', 'No installments yet'),
+              subtitle: t.t('Kartu kredit, paylater, KPR, kendaraan, atau gadget.', 'Credit cards, pay later, mortgage, car, or gadgets.'),
+            )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
               children: [
@@ -42,12 +48,12 @@ class InstallmentsScreen extends ConsumerWidget {
                   child: Row(children: [
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('Cicilan / bulan', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                        Text(t.t('Cicilan per bulan', 'Per month'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                         Text(formatMoney(monthly, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.serif(size: 22, weight: FontWeight.w700, color: WaColors.expense)),
                       ]),
                     ),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('Sisa total', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                      Text(t.t('Sisa semuanya', 'Total left'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                       Text(formatMoney(remaining, s.baseCurrency, compact: true, hidden: s.hideBalance), style: AppTheme.serif(size: 18, weight: FontWeight.w700)),
                     ]),
                   ]),
@@ -69,8 +75,9 @@ class InstallmentsScreen extends ConsumerWidget {
                                 Text(i.name, style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
                                 Text(
                                   i.active
-                                      ? 'Ke-${i.paidCount + 1} dari ${i.tenor} · jatuh tempo ${fmtRelativeDay(installmentDueDate(i))}'
-                                      : 'Lunas ✓',
+                                      ? t.t('Ke-${i.paidCount + 1} dari ${i.tenor} · jatuh tempo ${fmtRelativeDay(installmentDueDate(i))}',
+                                          '${i.paidCount + 1} of ${i.tenor} · due ${fmtRelativeDay(installmentDueDate(i))}')
+                                      : t.t('Lunas ✓', 'Paid off ✓'),
                                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                                 ),
                                 if (i.accountId != null)
@@ -87,12 +94,12 @@ class InstallmentsScreen extends ConsumerWidget {
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
                                 icon: const Icon(Icons.payments_outlined, size: 18),
-                                label: const Text('Bayar cicilan'),
+                                label: Text(t.t('Bayar cicilan', 'Pay installment')),
                                 onPressed: () async {
-                                  final accountId = i.accountId ?? await showAccountPicker(context, ref, title: 'Bayar dari');
+                                  final accountId = i.accountId ?? await showAccountPicker(context, ref, title: t.t('Bayar pakai', 'Pay from'));
                                   if (accountId == null) return;
                                   await MoneyActions(ref.read(databaseProvider)).payInstallment(i, accountId: accountId);
-                                  if (context.mounted) await showHanko(context, glyph: '済', label: 'Cicilan dibayar');
+                                  if (context.mounted) await showHanko(context, glyph: '済', label: t.t('Cicilan dibayar', 'Installment paid'));
                                 },
                               ),
                             ),
@@ -138,9 +145,12 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
   }
 
   Future<void> _save() async {
+    final t = S.of(context);
     final principal = parseAmount(_principal.text);
     final monthly = parseAmount(_monthly.text);
-    if (_name.text.trim().isEmpty || principal == null || monthly == null) return showSnack(context, 'Lengkapi nama, pokok, dan cicilan/bulan');
+    if (_name.text.trim().isEmpty || principal == null || monthly == null) {
+      return showSnack(context, t.t('Nama, pokok, dan cicilan per bulan belum lengkap', 'Fill in the name, principal, and monthly amount'));
+    }
     await ref.read(databaseProvider).saveInstallment(InstallmentsCompanion(
           id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
           name: Value(_name.text.trim()),
@@ -171,17 +181,22 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final acc = ref.watch(accountMapProvider)[_accountId];
     final cats = ref.watch(categoryMapProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Cicilan Baru' : 'Ubah Cicilan'),
+        title: Text(widget.existing == null ? t.t('Cicilan baru', 'New installment') : t.t('Ubah cicilan', 'Edit installment')),
         actions: [
           if (widget.existing != null)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
-                if (!await confirmDialog(context, title: 'Hapus cicilan?', message: 'Transaksi pembayaran yang sudah tercatat tetap ada.')) return;
+                if (!await confirmDialog(context,
+                    title: t.t('Hapus cicilan ini?', 'Delete this installment?'),
+                    message: t.t('Pembayaran yang sudah dicatat tetap ada.', 'Payments already recorded will stay.'))) {
+                  return;
+                }
                 await ref.read(databaseProvider).deleteInstallment(widget.existing!.id);
                 if (context.mounted) Navigator.pop(context);
               },
@@ -191,25 +206,28 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          LabeledField(label: 'Nama', child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'mis. iPhone via kartu kredit'))),
+          LabeledField(label: t.name, child: TextField(controller: _name, decoration: InputDecoration(hintText: t.t('Contoh: iPhone pakai kartu kredit', 'e.g. iPhone on credit card')))),
           LabeledField(
-            label: 'Pokok pinjaman',
+            label: t.t('Pokok pinjaman', 'Principal'),
             child: TextField(controller: _principal, keyboardType: TextInputType.number, onChanged: (_) => setState(_recalc)),
           ),
           LabeledField(
-            label: 'Bunga flat per tahun (%) — kosongkan jika 0%',
+            label: t.t('Bunga flat per tahun (%), kosongkan kalau 0%', 'Flat yearly interest (%), leave empty for 0%'),
             child: TextField(controller: _rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: (_) => setState(_recalc)),
           ),
-          _stepper('Tenor (bulan)', _tenor, 1, 360, (v) => setState(() {
+          _stepper(t.t('Tenor (bulan)', 'Term (months)'), _tenor, 1, 360, (v) => setState(() {
                 _tenor = v;
                 _recalc();
               })),
-          LabeledField(label: 'Cicilan per bulan (otomatis, bisa diubah)', child: TextField(controller: _monthly, keyboardType: TextInputType.number)),
-          _stepper('Sudah dibayar (kali)', _paid, 0, _tenor, (v) => setState(() => _paid = v)),
-          _stepper('Tanggal jatuh tempo', _dueDay, 1, 31, (v) => setState(() => _dueDay = v)),
+          LabeledField(
+            label: t.t('Cicilan per bulan (dihitung otomatis, bisa diubah)', 'Monthly payment (calculated, you can change it)'),
+            child: TextField(controller: _monthly, keyboardType: TextInputType.number),
+          ),
+          _stepper(t.t('Sudah dibayar berapa kali', 'Payments made'), _paid, 0, _tenor, (v) => setState(() => _paid = v)),
+          _stepper(t.t('Tanggal jatuh tempo', 'Due day'), _dueDay, 1, 31, (v) => setState(() => _dueDay = v)),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Mulai'),
+            title: Text(t.t('Mulai', 'Start date')),
             trailing: Text(fmtDate(_start)),
             onTap: () async {
               final d = await showDatePicker(context: context, initialDate: _start, firstDate: DateTime(2000), lastDate: DateTime(2100));
@@ -217,10 +235,12 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
             },
           ),
           LabeledField(
-            label: 'Dibayar dari dompet (opsional)',
+            label: t.t('Dibayar dari dompet (opsional)', 'Paid from wallet (optional)'),
             child: PickerTile(
-              leading: KanjiBadge(glyph: acc?.icon ?? '―', color: Color(acc?.color ?? WaColors.nezumi.toARGB32()), size: 34),
-              title: acc?.name ?? 'Pilih saat membayar',
+              leading: acc == null
+                  ? const Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
+                  : KanjiBadge(glyph: acc.icon, color: Color(acc.color), size: 34),
+              title: acc?.name ?? t.t('Pilih saat bayar', 'Choose when paying'),
               onTap: () async {
                 final id = await showAccountPicker(context, ref, selectedId: _accountId);
                 setState(() => _accountId = id);
@@ -228,18 +248,18 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
             ),
           ),
           LabeledField(
-            label: 'Kategori',
+            label: t.category,
             child: PickerTile(
               leading: KanjiBadge(glyph: cats[_categoryId]?.icon ?? '返', color: Color(cats[_categoryId]?.color ?? WaColors.momiji.toARGB32()), size: 34),
-              title: categoryLabel(cats, _categoryId, empty: 'Cicilan (bawaan)'),
+              title: categoryLabel(cats, _categoryId, empty: t.t('Cicilan (bawaan)', 'Installments (default)')),
               onTap: () async {
                 final id = await showCategoryPicker(context, type: 'expense', selectedId: _categoryId);
                 if (id != null) setState(() => _categoryId = id);
               },
             ),
           ),
-          LabeledField(label: 'Catatan', child: TextField(controller: _note)),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          LabeledField(label: t.note, child: TextField(controller: _note)),
+          FilledButton(onPressed: _save, child: Text(t.save)),
         ],
       ),
     );

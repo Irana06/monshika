@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="serif"
-        android:text="夢"
+        android:text="🎯"
         android:textColor="#E8A6B5"
         android:textSize="26sp"
         android:textStyle="bold" />

@@ -20,7 +20,8 @@
             android:layout_weight="1"
             android:fontFamily="serif"
             android:singleLine="true"
-            android:text="総資産 · Monshika"
+            android:id="@+id/title"
+            android:text="Monshika"
             android:textColor="#C9A45C"
             android:textSize="11sp" />
 
@@ -57,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:singleLine="true"
-            android:text="入 –"
+            android:text="+"
             android:textColor="#9CC48F"
             android:textSize="12sp" />
 
@@ -67,7 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:singleLine="true"
-            android:text="出 –"
+            android:text="-"
             android:textColor="#E0605A"
             android:textSize="12sp" />
     </LinearLayout>
@@ -78,7 +79,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:singleLine="true"
-        android:text="今日 sisa aman –"
+        android:text=""
         android:textColor="#C9A45C"
         android:textSize="12sp" />
 
@@ -98,7 +99,7 @@
             android:background="@drawable/widget_btn_expense"
             android:gravity="center"
             android:singleLine="true"
-            android:text="− 出"
+            android:text="-"
             android:textColor="#E0605A"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -112,7 +113,7 @@
             android:background="@drawable/widget_btn_income"
             android:gravity="center"
             android:singleLine="true"
-            android:text="+ 入"
+            android:text="+"
             android:textColor="#9CC48F"
             android:textSize="13sp"
             android:textStyle="bold" />

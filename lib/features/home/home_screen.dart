@@ -8,6 +8,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 import '../../services/money_actions.dart';
@@ -27,9 +28,11 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final settings = ref.watch(settingsProvider);
-    final (jp, id) = greeting();
+    final (jp, hello) = greeting();
     final season = seasonOf(DateTime.now());
+    final topLine = [if (t.jp) jp, if (settings.seasonalMotif) season.motif].join('  ');
 
     return Scaffold(
       body: RefreshIndicator(
@@ -49,19 +52,16 @@ class HomeScreen extends ConsumerWidget {
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (topLine.isNotEmpty) Text(topLine, style: AppTheme.serif(size: 13, color: WaColors.accent)),
                   Text(
-                    '$jp${settings.seasonalMotif ? '  ${season.motif}' : ''}',
-                    style: AppTheme.serif(size: 13, color: WaColors.accent),
-                  ),
-                  Text(
-                    settings.userName.isEmpty ? id : '$id, ${settings.userName}',
+                    settings.userName.isEmpty ? hello : '$hello, ${settings.userName}',
                     style: AppTheme.serif(size: 21, weight: FontWeight.w600),
                   ),
                 ],
               ),
               actions: [
                 IconButton(
-                  tooltip: settings.hideBalance ? 'Tampilkan saldo' : 'Sembunyikan saldo',
+                  tooltip: settings.hideBalance ? t.t('Tampilkan saldo', 'Show balances') : t.t('Sembunyikan saldo', 'Hide balances'),
                   icon: Icon(settings.hideBalance ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                   onPressed: () => ref.read(settingsProvider.notifier).toggleHideBalance(),
                 ),
@@ -100,6 +100,7 @@ class _BalanceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final txs = ref.watch(thisMonthTransactionsProvider).value ?? const <TxEntry>[];
@@ -122,9 +123,11 @@ class _BalanceCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text('総資産', style: AppTheme.serif(size: 13, color: WaColors.accent, weight: FontWeight.w700)),
-              const SizedBox(width: 6),
-              Text('Total saldo', style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
+              if (t.jp) ...[
+                Text('総資産', style: AppTheme.serif(size: 13, color: WaColors.accent, weight: FontWeight.w700)),
+                const SizedBox(width: 6),
+              ],
+              Text(t.t('Total saldo', 'Total balance'), style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
               const Spacer(),
               if (streak > 0)
                 Container(
@@ -133,7 +136,7 @@ class _BalanceCard extends ConsumerWidget {
                     color: WaColors.beni.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('🔥 $streak hari', style: AppTheme.sans(size: 11, weight: FontWeight.w700, color: WaColors.shu)),
+                  child: Text('🔥 ${t.t('$streak hari', '$streak days')}', style: AppTheme.sans(size: 11, weight: FontWeight.w700, color: WaColors.shu)),
                 ),
             ],
           ),
@@ -147,16 +150,18 @@ class _BalanceCard extends ConsumerWidget {
           ),
           if (f.liabilities > 0)
             Text(
-              'Aset ${formatMoney(f.assets, s.baseCurrency, compact: true, hidden: s.hideBalance)} · '
-              'Utang kartu ${formatMoney(f.liabilities, s.baseCurrency, compact: true, hidden: s.hideBalance)}',
+              t.t(
+                'Aset ${formatMoney(f.assets, s.baseCurrency, compact: true, hidden: s.hideBalance)} · Utang kartu ${formatMoney(f.liabilities, s.baseCurrency, compact: true, hidden: s.hideBalance)}',
+                'Assets ${formatMoney(f.assets, s.baseCurrency, compact: true, hidden: s.hideBalance)} · Card debt ${formatMoney(f.liabilities, s.baseCurrency, compact: true, hidden: s.hideBalance)}',
+              ),
               style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
             ),
           const SizedBox(height: 18),
           Text(fmtRange(range), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
           const SizedBox(height: 8),
-          _FlowRow(label: '入 Masuk', value: sum.income, max: maxFlow, color: WaColors.income, currency: s.baseCurrency, hidden: s.hideBalance),
+          _FlowRow(label: t.withJp('入', t.t('Masuk', 'In')), value: sum.income, max: maxFlow, color: WaColors.income, currency: s.baseCurrency, hidden: s.hideBalance),
           const SizedBox(height: 8),
-          _FlowRow(label: '出 Keluar', value: sum.expense, max: maxFlow, color: WaColors.expense, currency: s.baseCurrency, hidden: s.hideBalance),
+          _FlowRow(label: t.withJp('出', t.t('Keluar', 'Out')), value: sum.expense, max: maxFlow, color: WaColors.expense, currency: s.baseCurrency, hidden: s.hideBalance),
         ],
       ),
     );
@@ -198,10 +203,12 @@ class _SafeToSpendCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final safe = ref.watch(safeToSpendProvider);
     final s = ref.watch(settingsProvider);
     if (safe == null) return const SizedBox.shrink();
     final over = safe.todayLeft < 0;
+    String m(double v) => formatMoney(v, s.baseCurrency, compact: true, hidden: s.hideBalance);
     return WaCard(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -209,14 +216,16 @@ class _SafeToSpendCard extends ConsumerWidget {
           EnsoRing(
             progress: safe.perDay <= 0 ? 1 : safe.todaySpent / safe.perDay,
             size: 78,
-            child: Text('今日', style: AppTheme.serif(size: 17, weight: FontWeight.w700)),
+            child: t.jp
+                ? Text('今日', style: AppTheme.serif(size: 17, weight: FontWeight.w700))
+                : const Icon(Icons.today_outlined, size: 26, color: WaColors.washi),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Sisa aman hari ini', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                Text(t.t('Aman dipakai hari ini', 'Safe to spend today'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                 const SizedBox(height: 2),
                 Text(
                   formatMoney(safe.todayLeft, s.baseCurrency, hidden: s.hideBalance),
@@ -225,10 +234,11 @@ class _SafeToSpendCard extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   safe.perDay <= 0
-                      ? 'Anggaran periode ini sudah habis — rem pengeluaran ya.'
-                      : 'Jatah ${formatMoney(safe.perDay, s.baseCurrency, compact: true, hidden: s.hideBalance)}/hari · '
-                          'terpakai ${formatMoney(safe.todaySpent, s.baseCurrency, compact: true, hidden: s.hideBalance)} · '
-                          '${safe.remainingDays} hari lagi',
+                      ? t.t('Jatah periode ini sudah habis. Coba tahan dulu pengeluarannya.', "This period's budget is used up. Try to hold off on spending.")
+                      : t.t(
+                          'Jatah ${m(safe.perDay)}/hari · terpakai ${m(safe.todaySpent)} · ${safe.remainingDays} hari lagi',
+                          '${m(safe.perDay)}/day · spent ${m(safe.todaySpent)} · ${safe.remainingDays} days left',
+                        ),
                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                 ),
               ],
@@ -239,16 +249,20 @@ class _SafeToSpendCard extends ConsumerWidget {
             onPressed: () => showDialog<void>(
               context: context,
               builder: (_) => AlertDialog(
-                title: const Text('Sisa aman · 安全'),
+                title: Text(t.t('Cara hitungnya', 'How this works')),
                 content: Text(
                   safe.basis == 'income'
-                      ? 'Dihitung dari pemasukan periode ini (atau rencana pemasukan Kakeibo), dikurangi target nabung, '
-                          'tagihan yang belum dibayar sampai akhir periode, dan pengeluaran sebelum hari ini — lalu dibagi sisa hari.'
-                      : 'Belum ada pemasukan tercatat, jadi dihitung dari saldo dompet likuid (tunai, bank, e-wallet) '
-                          'dikurangi tagihan mendatang dan target nabung, dibagi sisa hari periode ini.',
+                      ? t.t(
+                          'Pemasukan periode ini (atau rencana di Kakeibo) dikurangi target nabung, tagihan yang belum dibayar, dan pengeluaran sebelum hari ini. Sisanya dibagi rata ke hari yang tersisa.',
+                          "This period's income (or your Kakeibo plan) minus your savings goal, unpaid bills, and spending before today. What's left is split evenly over the remaining days.",
+                        )
+                      : t.t(
+                          'Karena belum ada pemasukan yang dicatat, hitungannya pakai saldo tunai, bank, dan e-wallet, dikurangi tagihan dan target nabung, lalu dibagi sisa hari di periode ini.',
+                          "Since no income is logged yet, it uses your cash, bank, and e-wallet balances minus bills and savings goal, split over the days left in this period.",
+                        ),
                   style: AppTheme.sans(size: 14, color: WaColors.washiMuted),
                 ),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Mengerti'))],
+                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t.ok))],
               ),
             ),
           ),
@@ -263,6 +277,7 @@ class _KakeiboPrompt extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final range = ref.watch(thisMonthRangeProvider);
     final entry = ref.watch(kakeiboMonthProvider(fmtMonthKey(range.start)));
     if (entry.isLoading || entry.value != null) return const SizedBox.shrink();
@@ -279,9 +294,12 @@ class _KakeiboPrompt extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mulai Kakeibo bulan ini', style: AppTheme.serif(size: 16, weight: FontWeight.w600)),
-                  Text('Tentukan rencana pemasukan & target nabung supaya "sisa aman" makin akurat.',
-                      style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                  Text(t.t('Bikin rencana bulan ini', "Plan this month"), style: AppTheme.serif(size: 16, weight: FontWeight.w600)),
+                  Text(
+                    t.t('Isi perkiraan pemasukan dan target nabung biar angka aman dipakai lebih pas.',
+                        'Add your expected income and savings goal so the safe-to-spend number is more accurate.'),
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                  ),
                 ],
               ),
             ),
@@ -298,15 +316,16 @@ class _QuickActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final presets = (ref.watch(presetsProvider).value ?? const <Preset>[]).where((p) => p.showInWidget).toList();
     final accounts = ref.watch(accountMapProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Catat sekali tap',
+          title: t.t('Catat sekali tap', 'One-tap add'),
           jp: '速',
-          action: 'Atur',
+          action: t.t('Atur', 'Edit'),
           onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PresetsScreen())),
         ),
         SizedBox(
@@ -316,7 +335,7 @@ class _QuickActions extends ConsumerWidget {
             children: [
               ActionChip(
                 avatar: const Icon(Icons.bolt, size: 18, color: WaColors.accent),
-                label: const Text('Ketik cepat'),
+                label: Text(t.t('Ketik cepat', 'Quick type')),
                 onPressed: () => showQuickInputSheet(context),
               ),
               for (final p in presets) ...[
@@ -327,10 +346,11 @@ class _QuickActions extends ConsumerWidget {
                   onPressed: () async {
                     await MoneyActions(ref.read(databaseProvider)).recordPreset(p);
                     if (context.mounted) {
+                      final label = t.t('${p.name} dicatat', '${p.name} added');
                       if (ref.read(settingsProvider).hankoAnimation) {
-                        await showHanko(context, glyph: p.type == 'income' ? '入' : '済', label: '${p.name} tercatat');
+                        await showHanko(context, glyph: p.type == 'income' ? '入' : '済', label: label);
                       } else {
-                        showSnack(context, '${p.name} tercatat');
+                        showSnack(context, label);
                       }
                     }
                   },
@@ -349,15 +369,16 @@ class _AccountsStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
     final f = ref.watch(financeProvider);
     final hidden = ref.watch(settingsProvider).hideBalance;
     return Column(
       children: [
         SectionHeader(
-          title: 'Dompet',
+          title: t.wallets,
           jp: '財',
-          action: 'Kelola',
+          action: t.manage,
           onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsScreen())),
         ),
         SizedBox(
@@ -416,6 +437,7 @@ class _BudgetsStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final budgets = (ref.watch(budgetsProvider).value ?? const <Budget>[]).where((b) => b.active).toList();
     final f = ref.watch(financeProvider);
     final s = ref.watch(settingsProvider);
@@ -425,7 +447,7 @@ class _BudgetsStrip extends ConsumerWidget {
         SectionHeader(
           title: 'Budget',
           jp: '算',
-          action: budgets.isEmpty ? 'Buat' : 'Semua',
+          action: budgets.isEmpty ? t.t('Buat', 'Create') : t.seeAll,
           onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetsScreen())),
         ),
         if (budgets.isEmpty)
@@ -435,8 +457,11 @@ class _BudgetsStrip extends ConsumerWidget {
               const EnsoRing(progress: 0.35, size: 44, stroke: 5),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Belum ada budget. Buat batas pengeluaran per kategori agar tidak kebablasan.',
-                    style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
+                child: Text(
+                  t.t('Belum ada budget. Pasang batas belanja per kategori supaya pengeluaran tidak kebablasan.',
+                      'No budgets yet. Set a spending limit per category so things stay on track.'),
+                  style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
+                ),
               ),
             ]),
           )
@@ -463,7 +488,7 @@ class _BudgetsStrip extends ConsumerWidget {
                           progress: ratio,
                           size: 62,
                           stroke: 6,
-                          child: Text(b.icon, style: AppTheme.serif(size: 20, color: Color(b.color), weight: FontWeight.w700)),
+                          child: GlyphIcon(b.icon, color: Color(b.color), size: 21),
                         ),
                         const SizedBox(height: 6),
                         Text(b.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.sans(size: 12, weight: FontWeight.w600)),
@@ -486,15 +511,16 @@ class _UpcomingSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final bills = ref.watch(upcomingBillsProvider(7));
     final hidden = ref.watch(settingsProvider).hideBalance;
     if (bills.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
         SectionHeader(
-          title: '7 hari ke depan',
+          title: t.t('7 hari ke depan', 'Next 7 days'),
           jp: '予',
-          action: 'Jadwal',
+          action: t.t('Jadwal', 'Schedule'),
           onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringScreen())),
         ),
         WaCard(
@@ -525,23 +551,28 @@ class _RecentSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final recent = ref.watch(recentTransactionsProvider);
     return Column(
       children: [
         SectionHeader(
-          title: 'Transaksi terakhir',
+          title: t.t('Transaksi terakhir', 'Recent activity'),
           jp: '記',
-          action: 'Semua',
+          action: t.seeAll,
           onAction: () => ref.read(shellTabProvider.notifier).go(1),
         ),
         recent.when(
           loading: () => const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
           error: (e, _) => Text('$e'),
           data: (list) => list.isEmpty
-              ? const EmptyState(kanji: '始', title: 'Belum ada catatan', subtitle: 'Ketuk + di bawah, atau tahan untuk input cepat.')
+              ? EmptyState(
+                  kanji: '始',
+                  title: t.t('Belum ada catatan', 'Nothing here yet'),
+                  subtitle: t.t('Ketuk tombol + di bawah, atau tahan tombolnya untuk catat cepat.', 'Tap + below, or hold it for quick add.'),
+                )
               : WaCard(
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(children: [for (final t in list) TransactionTile(tx: t, showDate: true)]),
+                  child: Column(children: [for (final x in list) TransactionTile(tx: x, showDate: true)]),
                 ),
         ),
       ],

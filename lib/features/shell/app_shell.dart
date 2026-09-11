@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/strings.dart';
 import '../home/home_screen.dart';
 import '../more/more_screen.dart';
 import '../stats/stats_screen.dart';
@@ -23,16 +24,17 @@ class ShellTabNotifier extends Notifier<int> {
 class AppShell extends ConsumerWidget {
   const AppShell({super.key});
 
-  static const _tabs = [
-    ('家', 'Beranda'),
-    ('記', 'Transaksi'),
-    ('析', 'Statistik'),
-    ('他', 'Lainnya'),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
     final index = ref.watch(shellTabProvider);
+    final tabs = [
+      ('家', Icons.home_outlined, Icons.home, s.t('Beranda', 'Home')),
+      ('記', Icons.receipt_long_outlined, Icons.receipt_long, s.t('Transaksi', 'Activity')),
+      ('析', Icons.insights_outlined, Icons.insights, s.t('Statistik', 'Stats')),
+      ('他', Icons.grid_view_outlined, Icons.grid_view_rounded, s.t('Lainnya', 'More')),
+    ];
+
     return PopScope(
       canPop: index == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -52,7 +54,7 @@ class AppShell extends ConsumerWidget {
           },
           child: FloatingActionButton(
             heroTag: 'add-tx',
-            tooltip: 'Tambah transaksi (tahan untuk input cepat)',
+            tooltip: s.t('Catat transaksi (tahan untuk catat cepat)', 'Add transaction (hold for quick add)'),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionFormScreen())),
             child: const Icon(Icons.add, size: 30),
           ),
@@ -66,12 +68,15 @@ class AppShell extends ConsumerWidget {
           padding: EdgeInsets.zero,
           child: Row(
             children: [
-              for (var i = 0; i < _tabs.length; i++) ...[
+              for (var i = 0; i < tabs.length; i++) ...[
                 if (i == 2) const SizedBox(width: 72),
                 Expanded(
                   child: _TabButton(
-                    kanji: _tabs[i].$1,
-                    label: _tabs[i].$2,
+                    kanji: tabs[i].$1,
+                    icon: tabs[i].$2,
+                    selectedIcon: tabs[i].$3,
+                    label: tabs[i].$4,
+                    jp: s.jp,
                     selected: i == index,
                     onTap: () => ref.read(shellTabProvider.notifier).go(i),
                   ),
@@ -86,10 +91,21 @@ class AppShell extends ConsumerWidget {
 }
 
 class _TabButton extends StatelessWidget {
-  const _TabButton({required this.kanji, required this.label, required this.selected, required this.onTap});
+  const _TabButton({
+    required this.kanji,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.jp,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String kanji;
+  final IconData icon;
+  final IconData selectedIcon;
   final String label;
+  final bool jp;
   final bool selected;
   final VoidCallback onTap;
 
@@ -102,11 +118,14 @@ class _TabButton extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: AppTheme.serif(size: selected ? 22 : 19, weight: FontWeight.w700, color: color),
-            child: Text(kanji),
-          ),
+          if (jp)
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: AppTheme.serif(size: selected ? 22 : 19, weight: FontWeight.w700, color: color),
+              child: Text(kanji),
+            )
+          else
+            Icon(selected ? selectedIcon : icon, color: color, size: 24),
           const SizedBox(height: 2),
           Text(label, style: AppTheme.sans(size: 10.5, color: color, weight: selected ? FontWeight.w700 : FontWeight.w500)),
         ],

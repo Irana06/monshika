@@ -12,9 +12,10 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
-import '../../services/finance.dart';
+import '../common/pickers.dart';
 import '../transactions/transaction_tile.dart';
 import '../transactions/transactions_screen.dart';
 
@@ -23,12 +24,13 @@ class StatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     return DefaultTabController(
       length: 6,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Statistik · 分析'),
-          bottom: const TabBar(
+          title: Text(t.withJp('分析', t.t('Statistik', 'Stats'))),
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             indicatorColor: WaColors.accent,
@@ -36,12 +38,12 @@ class StatsScreen extends ConsumerWidget {
             unselectedLabelColor: WaColors.washiMuted,
             dividerColor: WaColors.border,
             tabs: [
-              Tab(text: 'Ringkasan'),
-              Tab(text: 'Kategori'),
-              Tab(text: 'Tren'),
-              Tab(text: 'Kalender'),
-              Tab(text: 'Kekayaan'),
-              Tab(text: 'Kakeibo'),
+              Tab(text: t.t('Ringkasan', 'Overview')),
+              Tab(text: t.categories),
+              Tab(text: t.t('Tren', 'Trends')),
+              Tab(text: t.t('Kalender', 'Calendar')),
+              Tab(text: t.t('Kekayaan', 'Net worth')),
+              const Tab(text: 'Kakeibo'),
             ],
           ),
         ),
@@ -65,6 +67,7 @@ class _PeriodBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final type = ref.watch(periodTypeProvider);
     final range = ref.watch(currentRangeProvider);
     return Padding(
@@ -85,20 +88,16 @@ class _PeriodBar extends ConsumerWidget {
               ref.read(periodTypeProvider.notifier).set(v);
               ref.read(periodOffsetProvider.notifier).reset();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'weekly', child: Text('Mingguan')),
-              PopupMenuItem(value: 'monthly', child: Text('Bulanan')),
-              PopupMenuItem(value: 'yearly', child: Text('Tahunan')),
+            itemBuilder: (_) => [
+              for (final p in const ['weekly', 'monthly', 'yearly']) PopupMenuItem(value: p, child: Text(t.periodLabel(p))),
             ],
-            child: Chip(label: Text(switch (type) { 'weekly' => 'Minggu', 'yearly' => 'Tahun', _ => 'Bulan' })),
+            child: Chip(label: Text(t.periodLabel(type))),
           ),
         ],
       ),
     );
   }
 }
-
-T _tooltipColor<T>(T v) => v;
 
 // -----------------------------------------------------------------------------
 // Ringkasan
@@ -109,6 +108,7 @@ class _SummaryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final range = ref.watch(currentRangeProvider);
@@ -117,18 +117,18 @@ class _SummaryTab extends ConsumerWidget {
     final txs = ref.watch(periodTransactionsProvider).value ?? const <TxEntry>[];
     final sum = f.summarize(txs);
     final prevRange = range.shift(-1, type);
-    final prev = f.summarize(all.where((t) => prevRange.contains(t.date)));
+    final prev = f.summarize(all.where((x) => prevRange.contains(x.date)));
     final today = dateOnly(DateTime.now());
     final elapsed = range.contains(today) ? today.difference(range.start).inDays + 1 : range.days;
     final avgDaily = sum.expense / math.max(1, elapsed);
 
     // 6 periode terakhir
     final periods = [for (var i = 5; i >= 0; i--) range.shift(-i, type)];
-    final bars = [for (final p in periods) f.summarize(all.where((t) => p.contains(t.date)))];
+    final bars = [for (final p in periods) f.summarize(all.where((x) => p.contains(x.date)))];
     final maxY = [...bars.map((b) => b.income), ...bars.map((b) => b.expense), 1.0].reduce(math.max);
 
-    String pct(double now, double before) {
-      if (before == 0) return now == 0 ? '—' : 'baru';
+    String? pct(double now, double before) {
+      if (before == 0) return null;
       final v = (now - before) / before * 100;
       return '${v >= 0 ? '▲' : '▼'} ${v.abs().toStringAsFixed(0)}%';
     }
@@ -139,29 +139,33 @@ class _SummaryTab extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
       children: [
         Row(children: [
-          Expanded(child: _KpiCard(label: '入 Pemasukan', value: m(sum.income), delta: pct(sum.income, prev.income), color: WaColors.income)),
+          Expanded(child: _KpiCard(label: t.withJp('入', t.income), value: m(sum.income), delta: pct(sum.income, prev.income), color: WaColors.income)),
           const SizedBox(width: 10),
-          Expanded(child: _KpiCard(label: '出 Pengeluaran', value: m(sum.expense), delta: pct(sum.expense, prev.expense), color: WaColors.expense, invert: true)),
+          Expanded(
+            child: _KpiCard(label: t.withJp('出', t.expense), value: m(sum.expense), delta: pct(sum.expense, prev.expense), color: WaColors.expense, invert: true),
+          ),
         ]),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: _KpiCard(label: '差 Selisih', value: m(sum.income - sum.expense), color: WaColors.washi)),
+          Expanded(child: _KpiCard(label: t.withJp('差', t.t('Selisih', 'Net')), value: m(sum.income - sum.expense), color: WaColors.washi)),
           const SizedBox(width: 10),
           Expanded(
             child: _KpiCard(
-              label: '率 Rasio nabung',
-              value: sum.income == 0 ? '—' : '${((sum.income - sum.expense) / sum.income * 100).toStringAsFixed(0)}%',
+              label: t.withJp('率', t.t('Porsi ditabung', 'Savings rate')),
+              value: sum.income == 0 ? '-' : '${((sum.income - sum.expense) / sum.income * 100).toStringAsFixed(0)}%',
               color: WaColors.accent,
             ),
           ),
         ]),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: _KpiCard(label: '日 Rata-rata/hari', value: m(avgDaily), color: WaColors.washi)),
+          Expanded(child: _KpiCard(label: t.withJp('日', t.t('Rata-rata per hari', 'Daily average')), value: m(avgDaily), color: WaColors.washi)),
           const SizedBox(width: 10),
-          Expanded(child: _KpiCard(label: '件 Transaksi', value: '${txs.where((t) => t.type != 'transfer').length}', color: WaColors.washi)),
+          Expanded(
+            child: _KpiCard(label: t.withJp('件', t.t('Jumlah transaksi', 'Transactions')), value: '${txs.where((x) => x.type != 'transfer').length}', color: WaColors.washi),
+          ),
         ]),
-        const SectionHeader(title: '6 periode terakhir', jp: '比'),
+        SectionHeader(title: t.t('6 periode terakhir', 'Last 6 periods'), jp: '比'),
         WaCard(
           padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
           child: SizedBox(
@@ -189,7 +193,7 @@ class _SummaryTab extends ConsumerWidget {
                         final label = switch (type) {
                           'weekly' => fmtDateShort(p.start),
                           'yearly' => '${p.start.year}',
-                          _ => kJpMonths[p.start.month - 1],
+                          _ => monthShort(p.start),
                         };
                         return SideTitleWidget(meta: meta, child: Text(label, style: AppTheme.serif(size: 11, color: WaColors.washiMuted)));
                       },
@@ -198,9 +202,9 @@ class _SummaryTab extends ConsumerWidget {
                 ),
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => _tooltipColor(WaColors.surfaceHigh),
+                    getTooltipColor: (_) => WaColors.surfaceHigh,
                     getTooltipItem: (group, _, rod, rodIndex) => BarTooltipItem(
-                      '${rodIndex == 0 ? 'Masuk' : 'Keluar'}\n${m(rod.toY)}',
+                      '${rodIndex == 0 ? t.t('Masuk', 'In') : t.t('Keluar', 'Out')}\n${m(rod.toY)}',
                       AppTheme.sans(size: 12, weight: FontWeight.w600),
                     ),
                   ),
@@ -220,16 +224,16 @@ class _SummaryTab extends ConsumerWidget {
             ),
           ),
         ),
-        const SectionHeader(title: 'Pengeluaran terbesar', jp: '大'),
+        SectionHeader(title: t.t('Pengeluaran terbesar', 'Biggest expenses'), jp: '大'),
         WaCard(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              for (final t in (txs.where((t) => t.type == 'expense' && f.countsInStats(t)).toList()
+              for (final x in (txs.where((x) => x.type == 'expense' && f.countsInStats(x)).toList()
                     ..sort((a, b) => f.txBase(b).compareTo(f.txBase(a))))
                   .take(5))
-                TransactionTile(tx: t, showDate: true),
-              if (txs.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text('Belum ada data')),
+                TransactionTile(tx: x, showDate: true),
+              if (txs.isEmpty) Padding(padding: const EdgeInsets.all(20), child: Text(t.noData)),
             ],
           ),
         ),
@@ -249,6 +253,7 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final up = delta?.startsWith('▲') ?? false;
     final down = delta?.startsWith('▼') ?? false;
     final deltaColor = (up && !invert) || (down && invert) ? WaColors.income : (up || down ? WaColors.expense : WaColors.washiMuted);
@@ -262,7 +267,7 @@ class _KpiCard extends StatelessWidget {
           FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: AppTheme.sans(size: 18, weight: FontWeight.w700, color: color))),
           if (delta != null) ...[
             const SizedBox(height: 2),
-            Text('$delta vs sebelumnya', style: AppTheme.sans(size: 11, color: deltaColor)),
+            Text('$delta ${t.t('dari sebelumnya', 'vs last')}', style: AppTheme.sans(size: 11, color: deltaColor)),
           ],
         ],
       ),
@@ -287,6 +292,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final cats = ref.watch(categoryMapProvider);
@@ -296,15 +302,16 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
     final total = data.fold(0.0, (v, e) => v + e.value);
 
     Color colorOf(int? id) => Color(cats[id]?.color ?? WaColors.nezumi.toARGB32());
+    String nameOf(int? id) => cats[id] == null ? t.noCategory : categoryName(cats[id]!, t);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
       children: [
         SegmentedButton<String>(
           showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(value: 'expense', label: Text('Pengeluaran')),
-            ButtonSegment(value: 'income', label: Text('Pemasukan')),
+          segments: [
+            ButtonSegment(value: 'expense', label: Text(t.expense)),
+            ButtonSegment(value: 'income', label: Text(t.income)),
           ],
           selected: {_type},
           onSelectionChanged: (v) => setState(() {
@@ -314,7 +321,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
         ),
         const SizedBox(height: 16),
         if (data.isEmpty)
-          const EmptyState(kanji: '空', title: 'Belum ada data periode ini')
+          EmptyState(kanji: '空', title: t.t('Belum ada data di periode ini', 'Nothing recorded in this period'))
         else ...[
           SizedBox(
             height: 240,
@@ -346,7 +353,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _touched != null && _touched! < data.length ? (cats[data[_touched!].key]?.name ?? 'Lainnya') : 'Total',
+                      _touched != null && _touched! < data.length ? nameOf(data[_touched!].key) : 'Total',
                       style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                     ),
                     Text(
@@ -370,7 +377,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => TransactionsScreen(
-                          title: cats[e.key]?.name ?? 'Tanpa kategori',
+                          title: nameOf(e.key),
                           initialFilter: TxFilter(
                             from: range.start,
                             to: range.end,
@@ -391,7 +398,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(children: [
-                                  Expanded(child: Text(cats[e.key]?.name ?? 'Tanpa kategori', style: AppTheme.sans(size: 14, weight: FontWeight.w600))),
+                                  Expanded(child: Text(nameOf(e.key), style: AppTheme.sans(size: 14, weight: FontWeight.w600))),
                                   Text(formatMoney(e.value, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.sans(size: 13, weight: FontWeight.w700)),
                                 ]),
                                 const SizedBox(height: 6),
@@ -429,6 +436,7 @@ class _TrendTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final range = ref.watch(currentRangeProvider);
@@ -487,11 +495,11 @@ class _TrendTab extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
       children: [
-        const SectionHeader(title: 'Pengeluaran kumulatif', jp: '累'),
+        SectionHeader(title: t.t('Total pengeluaran berjalan', 'Running total of spending'), jp: '累'),
         Row(children: [
-          const _Legend(color: WaColors.expense, label: 'Periode ini'),
+          _Legend(color: WaColors.expense, label: t.t('Periode ini', 'This period')),
           const SizedBox(width: 16),
-          const _Legend(color: WaColors.washiMuted, label: 'Periode lalu'),
+          _Legend(color: WaColors.washiMuted, label: t.t('Periode lalu', 'Last period')),
         ]),
         const SizedBox(height: 12),
         WaCard(
@@ -550,7 +558,7 @@ class _TrendTab extends ConsumerWidget {
             ),
           ),
         ),
-        const SectionHeader(title: 'Rata-rata per hari dalam seminggu', jp: '曜'),
+        SectionHeader(title: t.t('Rata-rata tiap hari dalam seminggu', 'Average by day of the week'), jp: '曜'),
         WaCard(
           child: Column(
             children: [
@@ -558,7 +566,7 @@ class _TrendTab extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(children: [
-                    SizedBox(width: 28, child: Text(kJpWeekdays[i], style: AppTheme.serif(size: 15, weight: FontWeight.w700))),
+                    SizedBox(width: 40, child: Text(weekdayShort(i + 1), style: AppTheme.serif(size: 14, weight: FontWeight.w700))),
                     Expanded(child: InkBar(value: weekdayAvg[i] / maxW, height: 8, color: weekdayAvg[i] == maxW ? WaColors.beni : WaColors.accent)),
                     const SizedBox(width: 10),
                     SizedBox(width: 90, child: Text(m(weekdayAvg[i]), textAlign: TextAlign.end, style: AppTheme.sans(size: 12))),
@@ -595,6 +603,7 @@ class _CalendarTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final range = ref.watch(currentRangeProvider);
@@ -604,7 +613,7 @@ class _CalendarTab extends ConsumerWidget {
     final income = f.dailyTotals(txs, cal, 'income');
     final maxV = [...expense, 1.0].reduce(math.max);
     final leading = (cal.start.weekday - s.firstWeekday) % 7;
-    final labels = [for (var i = 0; i < 7; i++) kJpWeekdays[(s.firstWeekday - 1 + i) % 7]];
+    final labels = [for (var i = 0; i < 7; i++) weekdayShort((s.firstWeekday - 1 + i) % 7 + 1)];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
@@ -612,7 +621,7 @@ class _CalendarTab extends ConsumerWidget {
         if (range.days > 45)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Kalender menampilkan bulan berjalan.', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            child: Text(t.t('Kalender menampilkan bulan ini.', 'The calendar shows this month.'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
           ),
         Row(children: [
           for (final l in labels)
@@ -662,7 +671,7 @@ class _CalendarTab extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Sedikit', style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+            Text(t.t('Sedikit', 'Less'), style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
             for (final a in const [0.12, 0.3, 0.5, 0.75])
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -670,7 +679,7 @@ class _CalendarTab extends ConsumerWidget {
                 height: 12,
                 decoration: BoxDecoration(color: WaColors.beni.withValues(alpha: a), borderRadius: BorderRadius.circular(3)),
               ),
-            Text('Banyak', style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+            Text(t.t('Banyak', 'More'), style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
           ],
         ),
       ],
@@ -678,6 +687,7 @@ class _CalendarTab extends ConsumerWidget {
   }
 
   void _showDay(BuildContext context, WidgetRef ref, DateTime day) {
+    final t = S.of(context);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -693,8 +703,9 @@ class _CalendarTab extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: Text(fmtDateLong(day), style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
               ),
-              if (list.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Tidak ada transaksi'))),
-              for (final t in list) TransactionTile(tx: t),
+              if (list.isEmpty)
+                Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(t.t('Tidak ada transaksi', 'No transactions')))),
+              for (final x in list) TransactionTile(tx: x),
               const SizedBox(height: 24),
             ],
           ),
@@ -713,22 +724,23 @@ class _NetWorthTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final all = ref.watch(yearTransactionsProvider).value ?? const <TxEntry>[];
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
 
-    // Mundur dari saldo sekarang: saldo di akhir bulan X = sekarang − arus kas setelahnya.
-    double flow(TxEntry t) => switch (t.type) {
-          'income' => f.txBase(t),
-          'expense' => -f.txBase(t),
-          _ => -f.toBase(t.fee, f.currencyOf(t.accountId)),
+    // Hitung mundur dari saldo sekarang: saldo akhir bulan X = saldo sekarang dikurangi arus kas sesudahnya.
+    double flow(TxEntry x) => switch (x.type) {
+          'income' => f.txBase(x),
+          'expense' => -f.txBase(x),
+          _ => -f.toBase(x.fee, f.currencyOf(x.accountId)),
         };
     final now = DateTime.now();
     final points = <(DateTime, double)>[];
     for (var i = 11; i >= 0; i--) {
       final end = DateTime(now.year, now.month - i + 1, 1);
-      final after = all.where((t) => !t.date.isBefore(end)).fold(0.0, (v, t) => v + flow(t));
+      final after = all.where((x) => !x.date.isBefore(end)).fold(0.0, (v, x) => v + flow(x));
       points.add((DateTime(now.year, now.month - i, 1), f.totalBalance - after));
     }
     final minY = points.map((p) => p.$2).reduce(math.min);
@@ -736,6 +748,7 @@ class _NetWorthTab extends ConsumerWidget {
     final pad = math.max(1.0, (maxY - minY) * 0.15);
     final first = points.first.$2;
     final change = f.totalBalance - first;
+    final changeText = formatMoney(change.abs(), s.baseCurrency, compact: true, hidden: s.hideBalance);
 
     final byType = groupBy(accounts.where((a) => !a.archived), (Account a) => a.type);
 
@@ -747,11 +760,11 @@ class _NetWorthTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('純資産 Kekayaan bersih', style: AppTheme.serif(size: 13, color: WaColors.accent)),
+              Text(t.withJp('純資産', t.t('Kekayaan bersih', 'Net worth')), style: AppTheme.serif(size: 13, color: WaColors.accent)),
               const SizedBox(height: 4),
               Text(formatMoney(f.totalBalance, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.serif(size: 28, weight: FontWeight.w700)),
               Text(
-                '${change >= 0 ? '▲' : '▼'} ${formatMoney(change.abs(), s.baseCurrency, compact: true, hidden: s.hideBalance)} dalam 12 bulan',
+                '${change >= 0 ? '▲' : '▼'} $changeText ${t.t('dalam 12 bulan', 'in 12 months')}',
                 style: AppTheme.sans(size: 12, color: change >= 0 ? WaColors.income : WaColors.expense),
               ),
               const SizedBox(height: 16),
@@ -774,7 +787,7 @@ class _NetWorthTab extends ConsumerWidget {
                           reservedSize: 24,
                           getTitlesWidget: (v, meta) => SideTitleWidget(
                             meta: meta,
-                            child: Text('${points[v.toInt()].$1.month}月', style: AppTheme.serif(size: 10, color: WaColors.washiMuted)),
+                            child: Text(monthShort(points[v.toInt()].$1), style: AppTheme.serif(size: 10, color: WaColors.washiMuted)),
                           ),
                         ),
                       ),
@@ -814,7 +827,7 @@ class _NetWorthTab extends ConsumerWidget {
             ],
           ),
         ),
-        const SectionHeader(title: 'Komposisi aset', jp: '構'),
+        SectionHeader(title: t.t('Isi kekayaanmu', 'Where your money sits'), jp: '構'),
         WaCard(
           child: Column(
             children: [
@@ -825,12 +838,12 @@ class _NetWorthTab extends ConsumerWidget {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(children: [
-                      KanjiBadge(glyph: kAccountTypes[e.key]?.$2 ?? '財', color: WaColors.accent, size: 32),
+                      KanjiBadge(glyph: accountTypeGlyph(e.key), color: WaColors.accent, size: 32),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
-                            Expanded(child: Text(kAccountTypes[e.key]?.$1 ?? e.key, style: AppTheme.sans(size: 13, weight: FontWeight.w600))),
+                            Expanded(child: Text(accountTypeLabel(t, e.key), style: AppTheme.sans(size: 13, weight: FontWeight.w600))),
                             Text(formatMoney(total, s.baseCurrency, compact: true, hidden: s.hideBalance),
                                 style: AppTheme.sans(size: 13, weight: FontWeight.w700, color: total < 0 ? WaColors.expense : WaColors.washi)),
                           ]),
@@ -850,7 +863,7 @@ class _NetWorthTab extends ConsumerWidget {
 }
 
 // -----------------------------------------------------------------------------
-// Kakeibo — 4 pilar
+// Kakeibo: 4 jenis pengeluaran
 // -----------------------------------------------------------------------------
 
 class _PillarTab extends ConsumerWidget {
@@ -865,6 +878,7 @@ class _PillarTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final txs = ref.watch(periodTransactionsProvider).value ?? const <TxEntry>[];
@@ -875,13 +889,15 @@ class _PillarTab extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
       children: [
         Text(
-          'Kakeibo (家計簿) membagi pengeluaran ke 4 pilar. Idealnya "Kebutuhan" dominan, "Keinginan" terkendali, '
-          'dan ada porsi untuk "Budaya" (investasi diri).',
+          t.t(
+            'Kakeibo membagi pengeluaran jadi 4 jenis. Sebaiknya kebutuhan paling besar, keinginan tetap terkontrol, dan ada sedikit untuk pengembangan diri.',
+            'Kakeibo sorts spending into 4 types. Ideally needs take the biggest share, wants stay in check, and a little goes to growing yourself.',
+          ),
           style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
         ),
         const SizedBox(height: 16),
         if (total == 0)
-          const EmptyState(kanji: '簿', title: 'Belum ada pengeluaran')
+          EmptyState(kanji: '簿', title: t.t('Belum ada pengeluaran', 'No spending yet'))
         else ...[
           SizedBox(
             height: 220,
@@ -895,7 +911,8 @@ class _PillarTab extends ConsumerWidget {
                       value: e.value,
                       color: _colors[e.key],
                       radius: 44,
-                      title: kPillars[e.key]!.$2,
+                      showTitle: t.jp,
+                      title: pillarGlyph(e.key),
                       titleStyle: AppTheme.serif(size: 16, weight: FontWeight.w700, color: WaColors.washi),
                     ),
                 ],
@@ -908,33 +925,28 @@ class _PillarTab extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: WaCard(
                 child: Row(children: [
-                  KanjiBadge(glyph: kPillars[e.key]!.$2, color: _colors[e.key]!, size: 44),
+                  KanjiBadge(glyph: pillarGlyph(e.key), color: _colors[e.key]!, size: 44),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        Expanded(child: Text(kPillars[e.key]!.$1, style: AppTheme.serif(size: 15, weight: FontWeight.w600))),
+                        Expanded(child: Text(pillarLabel(t, e.key), style: AppTheme.serif(size: 15, weight: FontWeight.w600))),
                         Text('${(e.value / total * 100).toStringAsFixed(0)}%', style: AppTheme.sans(size: 13, weight: FontWeight.w700, color: _colors[e.key])),
                       ]),
                       Text(formatMoney(e.value, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.sans(size: 13)),
                       const SizedBox(height: 4),
-                      Text(kPillars[e.key]!.$3, style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+                      Text(pillarDesc(t, e.key), style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
                     ]),
                   ),
                 ]),
               ),
             ),
           Text(
-            'Atur pilar tiap kategori di menu Lainnya › Kategori.',
+            t.t('Jenis tiap kategori bisa diatur di Lainnya › Kategori.', 'You can set the type of each category in More › Categories.'),
             style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
           ),
         ],
       ],
     );
   }
-}
-
-extension on Finance {
-  // ignore: unused_element
-  double get _noop => 0;
 }

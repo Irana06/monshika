@@ -6,6 +6,7 @@ import 'package:home_widget/home_widget.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/home_widget_sync.dart';
 import '../transactions/quick_input_sheet.dart';
@@ -13,22 +14,25 @@ import '../transactions/transaction_form_screen.dart';
 
 /// Aplikasi mini untuk QuickAddActivity (dibuka dari widget beranda).
 /// Latar transparan sehingga terasa seperti dialog di atas home screen.
-class QuickAddApp extends StatelessWidget {
+class QuickAddApp extends ConsumerWidget {
   const QuickAddApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(stringsProvider);
+    S.current = s;
     final theme = AppTheme.dark();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: theme.copyWith(scaffoldBackgroundColor: Colors.transparent),
-      locale: const Locale('id'),
+      locale: s.locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => SScope(s: s, child: child ?? const SizedBox.shrink()),
       home: const _QuickAddHost(),
     );
   }
@@ -49,7 +53,8 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
   void initState() {
     super.initState();
     HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
-      if (mounted) setState(() {
+      if (!mounted) return;
+      setState(() {
         _uri = uri;
         _ready = true;
       });
@@ -59,7 +64,7 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
   }
 
   Future<void> _close({bool saved = false}) async {
-    // Jangan render grafik di engine dialog ini (raster crash di sebagian GPU);
+    // Jangan render grafik di engine dialog ini (bisa crash di sebagian GPU);
     // grafik diperbarui saat aplikasi utama dibuka.
     if (saved) await HomeWidgetSync.refresh(ref.read(databaseProvider), renderChart: false);
     await SystemNavigator.pop();
@@ -67,6 +72,7 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final settings = ref.watch(settingsProvider);
     final accounts = ref.watch(accountsProvider);
     final type = _uri?.queryParameters['type'];
@@ -79,21 +85,21 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
       content = Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('始めましょう', style: AppTheme.serif(size: 22, color: WaColors.accent)),
+          Text(s.t('Belum ada dompet', 'No wallet yet'), style: AppTheme.serif(size: 20, weight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Text('Buka aplikasi Monshika dulu untuk menyiapkan dompet pertamamu.',
-              textAlign: TextAlign.center, style: AppTheme.sans(color: WaColors.washiMuted)),
+          Text(
+            s.t('Buka Monshika dulu untuk membuat dompet pertama.', 'Open Monshika first to set up your first wallet.'),
+            textAlign: TextAlign.center,
+            style: AppTheme.sans(color: WaColors.washiMuted),
+          ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: () => _close(), child: const Text('Oke')),
+          FilledButton(onPressed: () => _close(), child: Text(s.ok)),
         ]),
       );
     } else if (mode == 'form') {
       return Navigator(
         onGenerateRoute: (_) => MaterialPageRoute(
-          builder: (_) => Theme(
-            data: AppTheme.dark(),
-            child: TransactionFormScreen(initialType: type ?? 'expense', onSaved: () => _close(saved: true)),
-          ),
+          builder: (_) => TransactionFormScreen(initialType: type ?? 'expense', onSaved: () => _close(saved: true)),
         ),
       );
     } else {
@@ -102,16 +108,13 @@ class _QuickAddHostState extends ConsumerState<_QuickAddHost> {
         onSaved: () => _close(saved: true),
         onOpenForm: (parsed, accountId, categoryId) {
           Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => Theme(
-              data: AppTheme.dark(),
-              child: TransactionFormScreen(
-                initialType: parsed.type,
-                initialAmount: parsed.amount,
-                initialAccountId: accountId,
-                initialCategoryId: categoryId,
-                initialNote: parsed.note,
-                onSaved: () => _close(saved: true),
-              ),
+            builder: (_) => TransactionFormScreen(
+              initialType: parsed.type,
+              initialAmount: parsed.amount,
+              initialAccountId: accountId,
+              initialCategoryId: categoryId,
+              initialNote: parsed.note,
+              onSaved: () => _close(saved: true),
             ),
           ));
         },

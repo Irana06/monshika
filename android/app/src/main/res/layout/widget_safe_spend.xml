@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="serif"
         android:singleLine="true"
-        android:text="今日 · sisa aman"
+        android:text="Safe to spend today"
         android:textColor="#C9A45C"
         android:textSize="11sp" />
 
@@ -25,7 +25,7 @@
         android:ellipsize="end"
         android:fontFamily="serif"
         android:singleLine="true"
-        android:text="–"
+        android:text="-"
         android:textColor="#EDE6D6"
         android:textSize="18sp"
         android:textStyle="bold" />

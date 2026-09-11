@@ -3,21 +3,24 @@ import 'package:drift/drift.dart';
 import '../core/utils/dates.dart';
 import '../data/database/database.dart';
 import '../data/database/seed.dart';
+import '../l10n/strings.dart';
 import 'finance.dart';
 
-/// Aksi domain yang melibatkan beberapa tabel sekaligus.
+/// Aksi yang melibatkan beberapa tabel sekaligus.
 class MoneyActions {
   MoneyActions(this.db);
 
   final AppDatabase db;
 
-  Future<int?> _systemCategory(String name) async => (await db.findSystemCategory(name))?.id;
+  S get _s => S.current;
+
+  Future<int?> _systemCategory(String glyph) async => (await db.findSystemCategory(glyph))?.id;
 
   // ---------------------------------------------------------------------------
   // Transaksi berulang
   // ---------------------------------------------------------------------------
 
-  /// Catat semua transaksi berulang (auto-post) yang sudah jatuh tempo.
+  /// Catat semua transaksi berulang (otomatis) yang sudah jatuh tempo.
   Future<int> processDueRecurrings({DateTime? now}) async {
     final current = now ?? DateTime.now();
     var posted = 0;
@@ -55,7 +58,7 @@ class MoneyActions {
         recurringId: Value(r.id),
       ));
 
-  /// Catat manual satu kejadian lalu majukan jadwal.
+  /// Catat satu kejadian sekarang lalu majukan jadwal.
   Future<void> postRecurringNow(Recurring r) async {
     await _postRecurring(r, DateTime.now());
     final next = nextOccurrence(r.nextDate, r.frequency, r.interval);
@@ -72,7 +75,11 @@ class MoneyActions {
 
   Future<void> payInstallment(Installment i, {required int accountId, DateTime? date, double? amount}) async {
     final catId = i.categoryId ??
-        (await (db.select(db.categories)..where((c) => c.name.equals('Cicilan'))).getSingleOrNull())?.id;
+        (await (db.select(db.categories)
+                  ..where((c) => c.icon.equals('返') & c.type.equals('expense') & c.isSystem.equals(false)))
+                .get())
+            .firstOrNull
+            ?.id;
     await db.transaction(() async {
       await db.saveTransaction(TransactionsCompanion.insert(
         type: 'expense',
@@ -96,6 +103,9 @@ class MoneyActions {
   // Utang & piutang
   // ---------------------------------------------------------------------------
 
+  String _lendNote(String person) => _s.t('Pinjamkan ke $person', 'Lent to $person');
+  String _borrowNote(String person) => _s.t('Pinjam dari $person', 'Borrowed from $person');
+
   Future<int> createDebt({
     required String person,
     required String direction,
@@ -106,7 +116,7 @@ class MoneyActions {
     String note = '',
     int? accountId,
   }) async {
-    final catId = await _systemCategory(kSystemDebtCategory);
+    final catId = await _systemCategory(kSystemDebtGlyph);
     return db.transaction(() async {
       final id = await db.into(db.debts).insert(DebtsCompanion.insert(
             person: person,
@@ -120,13 +130,13 @@ class MoneyActions {
           ));
       if (accountId != null) {
         await db.saveTransaction(TransactionsCompanion.insert(
-          // Meminjamkan = uang keluar; meminjam = uang masuk.
+          // Meminjamkan berarti uang keluar; meminjam berarti uang masuk.
           type: direction == 'lend' ? 'expense' : 'income',
           amount: amount,
           accountId: accountId,
           categoryId: Value(catId),
           date: date,
-          note: Value(direction == 'lend' ? 'Pinjamkan ke $person' : 'Pinjam dari $person'),
+          note: Value(direction == 'lend' ? _lendNote(person) : _borrowNote(person)),
           debtId: Value(id),
           excludeFromStats: const Value(true),
         ));
@@ -135,7 +145,7 @@ class MoneyActions {
     });
   }
 
-  /// Utang/piutang dengan tenor: dipecah menjadi [tenor] cicilan bulanan.
+  /// Utang/piutang dengan tenor, dipecah menjadi cicilan bulanan.
   /// Uang masuk/keluar dompet dicatat sekali sebesar [principal] (bila [accountId] diisi).
   Future<List<int>> createDebtWithTenor({
     required String person,
@@ -148,12 +158,12 @@ class MoneyActions {
     String note = '',
     int? accountId,
   }) async {
-    final catId = await _systemCategory(kSystemDebtCategory);
+    final catId = await _systemCategory(kSystemDebtGlyph);
     final tenor = installments.length;
     return db.transaction(() async {
       final ids = <int>[];
       for (var i = 0; i < tenor; i++) {
-        final label = 'Cicilan ${i + 1}/$tenor';
+        final label = _s.t('Cicilan ${i + 1}/$tenor', 'Installment ${i + 1}/$tenor');
         ids.add(await db.into(db.debts).insert(DebtsCompanion.insert(
               person: person,
               direction: direction,
@@ -172,7 +182,7 @@ class MoneyActions {
           accountId: accountId,
           categoryId: Value(catId),
           date: date,
-          note: Value(direction == 'lend' ? 'Pinjamkan ke $person ($tenor×)' : 'Pinjam dari $person ($tenor×)'),
+          note: Value('${direction == 'lend' ? _lendNote(person) : _borrowNote(person)} ($tenor×)'),
           debtId: Value(ids.first),
           excludeFromStats: const Value(true),
         ));
@@ -182,7 +192,7 @@ class MoneyActions {
   }
 
   Future<void> addDebtPayment(Debt d, {required double amount, required DateTime date, int? accountId, String note = ''}) async {
-    final catId = await _systemCategory(kSystemDebtCategory);
+    final catId = await _systemCategory(kSystemDebtGlyph);
     await db.transaction(() async {
       int? txId;
       if (accountId != null) {
@@ -192,7 +202,9 @@ class MoneyActions {
           accountId: accountId,
           categoryId: Value(catId),
           date: date,
-          note: Value(d.direction == 'lend' ? 'Pelunasan dari ${d.person}' : 'Bayar utang ke ${d.person}'),
+          note: Value(d.direction == 'lend'
+              ? _s.t('Uang kembali dari ${d.person}', 'Repaid by ${d.person}')
+              : _s.t('Bayar utang ke ${d.person}', 'Paid ${d.person}')),
           debtId: Value(d.id),
           excludeFromStats: const Value(true),
         ));
@@ -224,7 +236,7 @@ class MoneyActions {
   // ---------------------------------------------------------------------------
 
   Future<void> addGoalEntry(Goal g, {required double amount, required DateTime date, int? accountId, String note = ''}) async {
-    final catId = await _systemCategory(kSystemGoalCategory);
+    final catId = await _systemCategory(kSystemGoalGlyph);
     await db.transaction(() async {
       int? txId;
       if (accountId != null) {
@@ -234,7 +246,7 @@ class MoneyActions {
           accountId: accountId,
           categoryId: Value(catId),
           date: date,
-          note: Value(amount >= 0 ? 'Setor ke ${g.name}' : 'Tarik dari ${g.name}'),
+          note: Value(amount >= 0 ? _s.t('Setor ke ${g.name}', 'Saved to ${g.name}') : _s.t('Ambil dari ${g.name}', 'Withdrew from ${g.name}')),
           goalId: Value(g.id),
           excludeFromStats: const Value(true),
         ));
@@ -261,19 +273,19 @@ class MoneyActions {
   Future<void> adjustBalance(Account a, {required double currentBalance, required double actualBalance}) async {
     final diff = actualBalance - currentBalance;
     if (diff.abs() < 0.0001) return;
-    final catId = await _systemCategory(kSystemAdjustCategory);
+    final catId = await _systemCategory(kSystemAdjustGlyph);
     await db.saveTransaction(TransactionsCompanion.insert(
       type: diff > 0 ? 'income' : 'expense',
       amount: diff.abs(),
       accountId: a.id,
       categoryId: Value(catId),
       date: DateTime.now(),
-      note: const Value('Penyesuaian saldo'),
+      note: Value(_s.t('Penyesuaian saldo', 'Balance adjustment')),
       excludeFromStats: const Value(true),
     ));
   }
 
-  /// Bagi tagihan: catat bagian sendiri sebagai pengeluaran, sisanya jadi piutang.
+  /// Bagi tagihan: bagian sendiri jadi pengeluaran, sisanya jadi piutang.
   Future<void> splitBill({
     required String title,
     required double total,
@@ -286,7 +298,7 @@ class MoneyActions {
     DateTime? dueDate,
   }) async {
     final when = date ?? DateTime.now();
-    final debtCat = await _systemCategory(kSystemDebtCategory);
+    final debtCat = await _systemCategory(kSystemDebtGlyph);
     await db.transaction(() async {
       await db.saveTransaction(TransactionsCompanion.insert(
         type: 'expense',
@@ -294,7 +306,7 @@ class MoneyActions {
         accountId: accountId,
         categoryId: Value(categoryId),
         date: when,
-        note: Value('$title (bagian saya)'),
+        note: Value(_s.t('$title (bagian saya)', '$title (my share)')),
       ));
       for (final e in others.entries) {
         if (e.value <= 0) continue;
@@ -314,7 +326,7 @@ class MoneyActions {
           accountId: accountId,
           categoryId: Value(debtCat),
           date: when,
-          note: Value('$title — talangan ${e.key}'),
+          note: Value(_s.t('$title, ditalangi untuk ${e.key}', '$title, covered for ${e.key}')),
           debtId: Value(debtId),
           excludeFromStats: const Value(true),
         ));
@@ -351,7 +363,7 @@ class MoneyActions {
         note: Value(p.note.isEmpty ? p.name : p.note),
       ));
 
-  /// Budget yang baru melewati ambang peringatan akibat transaksi [t].
+  /// Budget yang baru melewati ambang peringatan karena transaksi [t].
   Future<List<(Budget, double)>> budgetsCrossed(TxEntry t, Finance f, {required int monthStartDay}) async {
     if (t.type != 'expense' || t.excludeFromStats) return const [];
     final result = <(Budget, double)>[];

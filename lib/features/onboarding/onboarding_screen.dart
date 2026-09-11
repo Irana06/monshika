@@ -10,17 +10,19 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/notification_service.dart';
 import '../../services/rates_service.dart';
 import '../backup/backup_screen.dart';
 
 class _AccountDraft {
-  _AccountDraft(this.type, this.name, this.enabled);
+  _AccountDraft(this.type, this.enabled);
   final String type;
-  final TextEditingController name;
+  final TextEditingController name = TextEditingController();
   final TextEditingController balance = TextEditingController();
   bool enabled;
+  bool edited = false;
 }
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -41,12 +43,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _busy = false;
 
   final _accounts = [
-    _AccountDraft('cash', TextEditingController(text: 'Tunai'), true),
-    _AccountDraft('bank', TextEditingController(text: 'Bank'), true),
-    _AccountDraft('ewallet', TextEditingController(text: 'E-Wallet'), false),
+    _AccountDraft('cash', true),
+    _AccountDraft('bank', true),
+    _AccountDraft('ewallet', false),
   ];
 
   int get _startDay => _usePayday ? (int.tryParse(_payday.text.trim()) ?? 1).clamp(1, 31) : 1;
+
+  /// Isi nama dompet bawaan sesuai bahasa, kecuali yang sudah diubah pengguna.
+  void _syncAccountNames(S s) {
+    for (final a in _accounts) {
+      final label = accountTypeLabel(s, a.type);
+      if (!a.edited && a.name.text != label) a.name.text = label;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAccountNames(S.of(context));
+  }
 
   void _next() {
     FocusScope.of(context).unfocus();
@@ -55,6 +71,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finish() async {
     setState(() => _busy = true);
+    final s = S.of(context);
     final db = ref.read(databaseProvider);
     final notifier = ref.read(settingsProvider.notifier);
     await notifier.setUserName(_name.text.trim());
@@ -73,14 +90,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         currency: Value(_currency),
         initialBalance: Value(parseAmount(a.balance.text) ?? 0),
         color: colors[i].toARGB32(),
-        icon: kAccountTypes[a.type]!.$2,
+        icon: accountTypeGlyph(a.type),
         sortOrder: Value(order++),
       ));
       firstId ??= id;
       if (a.type == 'cash' || a.type == 'ewallet') walletId ??= id;
     }
     firstId ??= await db.saveAccount(AccountsCompanion.insert(
-      name: 'Tunai',
+      name: accountTypeLabel(s, 'cash'),
       type: 'cash',
       currency: Value(_currency),
       color: WaColors.kin.toARGB32(),
@@ -90,13 +107,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     if (_presets) {
       final cats = await db.getCategories();
-      int? cat(String name) => cats.where((c) => c.name == name).map((c) => c.id).firstOrNull;
+      int? cat(String glyph) => cats.where((c) => c.icon == glyph && !c.isSystem).map((c) => c.id).firstOrNull;
       final small = _currency == 'IDR';
       final presets = [
-        ('Kopi', '☕', small ? 25000.0 : 5.0, 'Kopi & Jajan'),
-        ('Makan', '🍱', small ? 25000.0 : 10.0, 'Makan & Minum'),
-        ('Ojol', '🛵', small ? 15000.0 : 5.0, 'Ojek Online'),
-        ('Parkir', '🅿️', small ? 5000.0 : 2.0, 'Parkir & Tol'),
+        (s.t('Kopi', 'Coffee'), '☕', small ? 25000.0 : 5.0, '茶'),
+        (s.t('Makan', 'Lunch'), '🍱', small ? 25000.0 : 10.0, '食'),
+        (s.t('Ojol', 'Ride'), '🛵', small ? 15000.0 : 5.0, '走'),
+        (s.t('Parkir', 'Parking'), '🅿️', small ? 5000.0 : 2.0, '駐'),
       ];
       for (final (i, p) in presets.indexed) {
         await db.savePreset(PresetsCompanion.insert(
@@ -118,6 +135,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -127,7 +145,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 controller: _page,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _index = i),
-                children: [_welcome(), _profile(), _accountsPage()],
+                children: [_welcome(s), _profile(s), _accountsPage(s)],
               ),
             ),
             Padding(
@@ -149,12 +167,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   if (_index > 0)
                     TextButton(
                       onPressed: () => _page.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
-                      child: const Text('Kembali'),
+                      child: Text(s.back),
                     ),
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: _busy ? null : (_index < 2 ? _next : _finish),
-                    child: Text(_index == 0 ? 'Mulai' : (_index < 2 ? 'Lanjut' : 'Selesai')),
+                    child: Text(_index == 0 ? s.t('Mulai', 'Get started') : (_index < 2 ? s.next : s.done)),
                   ),
                 ],
               ),
@@ -165,10 +183,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _welcome() {
+  Widget _welcome(S s) {
+    final settings = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
     return Stack(
       children: [
-        Positioned.fill(child: CustomPaint(painter: SeigaihaPainter(color: WaColors.washi.withValues(alpha: 0.03), radius: 30))),
+        if (s.jp)
+          Positioned.fill(child: CustomPaint(painter: SeigaihaPainter(color: WaColors.washi.withValues(alpha: 0.03), radius: 30))),
         Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -184,14 +205,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   .fadeIn(delay: 300.ms)
                   .slideY(begin: 0.3, end: 0),
               const SizedBox(height: 8),
-              Text('お金を、心穏やかに。', style: AppTheme.serif(size: 18, color: WaColors.accent)).animate().fadeIn(delay: 500.ms),
+              if (s.jp) Text('お金を、心穏やかに。', style: AppTheme.serif(size: 18, color: WaColors.accent)).animate().fadeIn(delay: 500.ms),
               const SizedBox(height: 4),
-              Text('Kelola uang dengan tenang.', style: AppTheme.sans(size: 15, color: WaColors.washiMuted)).animate().fadeIn(delay: 600.ms),
-              const SizedBox(height: 40),
+              Text(s.t('Catat uang tanpa ribet.', 'Money tracking, minus the stress.'),
+                      style: AppTheme.sans(size: 15, color: WaColors.washiMuted))
+                  .animate()
+                  .fadeIn(delay: 600.ms),
+              const SizedBox(height: 28),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'id', label: Text('Indonesia')),
+                  ButtonSegment(value: 'en', label: Text('English')),
+                ],
+                selected: {settings.language},
+                showSelectedIcon: false,
+                onSelectionChanged: (v) => n.setLanguage(v.first),
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                value: settings.japaneseStyle,
+                onChanged: n.setJapaneseStyle,
+                title: Text(s.t('Nuansa Jepang', 'Japanese style'), style: AppTheme.sans(size: 14, weight: FontWeight.w600)),
+                subtitle: Text(s.t('Ikon kanji dan label Jepang. Bisa diganti nanti.', 'Kanji icons and Japanese labels. You can change this later.'),
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+              ),
+              const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupScreen(fromOnboarding: true))),
                 icon: const Icon(Icons.restore),
-                label: const Text('Sudah punya backup? Pulihkan data'),
+                label: Text(s.t('Punya backup? Pulihkan data', 'Have a backup? Restore it')),
               ).animate().fadeIn(delay: 800.ms),
             ],
           ),
@@ -200,21 +243,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _profile() {
+  Widget _profile(S s) {
     final info = currencyInfo(_currency);
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text('自己紹介', style: AppTheme.serif(size: 16, color: WaColors.accent)),
-        Text('Kenalan dulu', style: AppTheme.serif(size: 28, weight: FontWeight.w700)),
+        if (s.jp) Text('自己紹介', style: AppTheme.serif(size: 16, color: WaColors.accent)),
+        Text(s.t('Kenalan dulu', 'About you'), style: AppTheme.serif(size: 28, weight: FontWeight.w700)),
         const SizedBox(height: 24),
-        LabeledField(label: 'Nama panggilan', child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'mis. Irana'))),
         LabeledField(
-          label: 'Mata uang utama',
+          label: s.t('Nama panggilan', 'Nickname'),
+          child: TextField(controller: _name, decoration: InputDecoration(hintText: s.t('Contoh: Irana', 'e.g. Sam'))),
+        ),
+        LabeledField(
+          label: s.t('Mata uang utama', 'Main currency'),
           child: PickerTile(
             leading: Text(info.flag, style: const TextStyle(fontSize: 26)),
-            title: '${info.code} · ${info.name}',
-            subtitle: 'Semua ringkasan dikonversi ke mata uang ini',
+            title: '${info.code} · ${info.name(s)}',
+            subtitle: s.t('Total dan laporan dihitung pakai mata uang ini', 'Totals and reports use this currency'),
             onTap: () async {
               final c = await pickCurrency(context, current: _currency);
               if (c != null) setState(() => _currency = c);
@@ -230,9 +276,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 contentPadding: EdgeInsets.zero,
                 value: _usePayday,
                 onChanged: (v) => setState(() => _usePayday = v),
-                title: Text('Hitung bulan dari tanggal gajian', style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
+                title: Text(s.t('Hitung bulan dari tanggal gajian', 'Start the month on payday'), style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
                 subtitle: Text(
-                  'Opsional. Kalau mati, periode bulanan mengikuti kalender (tanggal 1 – akhir bulan).',
+                  s.t('Opsional. Kalau mati, periode bulanan ikut kalender biasa.', 'Optional. When off, months follow the normal calendar.'),
                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                 ),
               ),
@@ -245,13 +291,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     autofocus: true,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
-                    decoration: const InputDecoration(labelText: 'Tanggal gajian (1–31)', hintText: 'mis. 25'),
+                    decoration: InputDecoration(labelText: s.t('Tanggal gajian', 'Payday'), hintText: s.t('Contoh: 25', 'e.g. 25')),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Gaji sering telat? Tidak masalah — tanggal ini hanya untuk memotong periode budget & laporan, '
-                  'bukan jadwal gaji masuk. Bisa diubah kapan saja di Pengaturan.',
+                  s.t(
+                    'Gaji suka telat? Santai saja. Tanggal ini cuma dipakai untuk memotong periode budget dan laporan, bukan jadwal gaji masuk. Bisa diubah di Pengaturan.',
+                    "Paychecks run late sometimes? That's fine. This date only splits budget and report periods, it doesn't track when you get paid. You can change it in Settings.",
+                  ),
                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                 ),
               ],
@@ -262,14 +310,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _accountsPage() {
+  Widget _accountsPage(S s) {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text('財布', style: AppTheme.serif(size: 16, color: WaColors.accent)),
-        Text('Dompet pertamamu', style: AppTheme.serif(size: 28, weight: FontWeight.w700)),
+        if (s.jp) Text('財布', style: AppTheme.serif(size: 16, color: WaColors.accent)),
+        Text(s.t('Dompet pertamamu', 'Your first wallets'), style: AppTheme.serif(size: 28, weight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text('Isi saldo saat ini. Nanti bisa ditambah atau diubah kapan saja.', style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
+        Text(s.t('Isi saldo sekarang. Nanti masih bisa ditambah atau diubah.', 'Fill in what you have now. You can add or change these later.'),
+            style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
         const SizedBox(height: 20),
         for (final a in _accounts)
           Padding(
@@ -280,12 +329,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   Row(
                     children: [
-                      KanjiBadge(glyph: kAccountTypes[a.type]!.$2, color: a.enabled ? WaColors.accent : WaColors.washiFaint, size: 40),
+                      KanjiBadge(glyph: accountTypeGlyph(a.type), color: a.enabled ? WaColors.accent : WaColors.washiFaint, size: 40),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: a.name,
                           enabled: a.enabled,
+                          onChanged: (_) => a.edited = true,
                           decoration: const InputDecoration(filled: false, border: InputBorder.none, isDense: true),
                           style: AppTheme.sans(size: 16, weight: FontWeight.w600),
                         ),
@@ -297,7 +347,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     TextField(
                       controller: a.balance,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(hintText: 'Saldo awal', prefixText: '${currencyInfo(_currency).symbol} '),
+                      decoration: InputDecoration(hintText: s.t('Saldo awal', 'Starting balance'), prefixText: '${currencyInfo(_currency).symbol} '),
                     ),
                 ],
               ),
@@ -310,8 +360,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Punya saldo dolar (PayPal), yen, atau mata uang lain? Setelah ini tambahkan di Lainnya › Dompet '
-                'dan pilih mata uangnya. Kurs dikonversi otomatis, dan bisa diisi manual sesuai kurs bank.',
+                s.t(
+                  'Punya saldo dolar di PayPal, yen, atau mata uang lain? Tambahkan nanti lewat Lainnya › Dompet lalu pilih mata uangnya. Kurs dihitung otomatis, atau isi sendiri sesuai kurs bank.',
+                  'Got dollars on PayPal, yen, or another currency? Add it later from More › Wallets and pick the currency. Rates update on their own, or you can enter your bank rate.',
+                ),
                 style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
               ),
             ),
@@ -322,8 +374,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           contentPadding: EdgeInsets.zero,
           value: _presets,
           onChanged: (v) => setState(() => _presets = v),
-          title: const Text('Buat preset sekali tap'),
-          subtitle: Text('Kopi, makan, ojol, parkir — bisa dipakai di widget beranda', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+          title: Text(s.t('Buat tombol catat sekali tap', 'Add one-tap shortcuts')),
+          subtitle: Text(
+            s.t('Kopi, makan, ojol, dan parkir. Bisa dipakai juga dari widget.', 'Coffee, lunch, rides, and parking. Works from the widget too.'),
+            style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+          ),
         ),
       ],
     );

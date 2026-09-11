@@ -7,6 +7,7 @@ import 'package:home_widget/home_widget.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/home_widget_sync.dart';
 
@@ -20,22 +21,31 @@ class _WidgetInfo {
   final Color color;
 }
 
-const _widgets = [
-  _WidgetInfo('QuickAddWidget', '速', 'Catat Cepat', '2×1',
-      'Tombol − / + / ketik. Membuka dialog kecil di atas beranda — catat tanpa membuka aplikasi.', WaColors.beni),
-  _WidgetInfo('SummaryWidget', '総', 'Ringkasan Bulan', '4×2',
-      'Total saldo, pemasukan & pengeluaran bulan ini, sisa aman hari ini, dan tombol cepat.', WaColors.kin),
-  _WidgetInfo('SafeSpendWidget', '安', 'Sisa Aman Hari Ini', '2×2',
-      'Jatah belanja harian yang masih tersisa — berubah merah kalau kelewatan.', WaColors.matcha),
-  _WidgetInfo('ChartWidget', '図', 'Grafik 7 Hari', '4×2',
-      'Batang pemasukan/pengeluaran seminggu terakhir + kategori terbesar bulan ini.', WaColors.asagi),
-  _WidgetInfo('PresetWidget', '札', 'Preset Sekali Tap', '4×1',
-      '4 preset favorit. Sekali tap langsung tercatat di latar belakang.', WaColors.shu),
-  _WidgetInfo('BudgetWidget', '算', 'Budget', '4×2', '3 budget dengan pemakaian tertinggi beserta sisanya.', WaColors.yamabuki),
-  _WidgetInfo('UpcomingWidget', '予', 'Tagihan Mendatang', '4×2',
-      'Tagihan berulang, cicilan, dan utang/piutang 14 hari ke depan.', WaColors.ruri),
-  _WidgetInfo('GoalWidget', '夢', 'Target Tabungan', '2×2', 'Progres target yang disematkan (omamori).', WaColors.sakura),
-];
+List<_WidgetInfo> _widgets(S t) => [
+      _WidgetInfo('QuickAddWidget', '速', t.t('Catat cepat', 'Quick add'), '2×1',
+          t.t('Tombol keluar, masuk, dan ketik. Muncul dialog kecil di atas layar, tidak perlu buka aplikasi.',
+              'Out, in, and type buttons. A small dialog pops up so you never have to open the app.'),
+          WaColors.beni),
+      _WidgetInfo('SummaryWidget', '総', t.t('Ringkasan bulan', 'Monthly summary'), '4×2',
+          t.t('Total saldo, uang masuk dan keluar bulan ini, sisa aman hari ini, plus tombol cepat.',
+              "Total balance, this month's in and out, today's safe-to-spend, and quick buttons."),
+          WaColors.kin),
+      _WidgetInfo('SafeSpendWidget', '安', t.t('Aman dipakai hari ini', 'Safe to spend today'), '2×2',
+          t.t('Sisa jatah belanja hari ini. Warnanya jadi merah kalau sudah lewat.', "What's left of today's spending money. Turns red when you go over."),
+          WaColors.matcha),
+      _WidgetInfo('ChartWidget', '図', t.t('Grafik 7 hari', '7-day chart'), '4×2',
+          t.t('Grafik uang masuk dan keluar seminggu terakhir, plus kategori terbesar bulan ini.',
+              "Money in and out over the past week, plus this month's top category."),
+          WaColors.asagi),
+      _WidgetInfo('PresetWidget', '札', t.t('Sekali tap', 'One tap'), '4×1',
+          t.t('4 preset favorit. Sekali tap langsung tercatat.', 'Your top 4 presets. One tap and it is saved.'), WaColors.shu),
+      _WidgetInfo('BudgetWidget', '算', 'Budget', '4×2',
+          t.t('3 budget yang paling banyak terpakai, beserta sisanya.', 'Your 3 most used budgets and what is left.'), WaColors.yamabuki),
+      _WidgetInfo('UpcomingWidget', '予', t.t('Tagihan terdekat', 'Upcoming bills'), '4×2',
+          t.t('Tagihan rutin, cicilan, dan utang dalam 14 hari ke depan.', 'Recurring bills, installments, and debts in the next 14 days.'), WaColors.ruri),
+      _WidgetInfo('GoalWidget', '夢', t.t('Target tabungan', 'Savings goal'), '2×2',
+          t.t('Progres target yang kamu pilih untuk widget.', 'Progress on the goal you picked for the widget.'), WaColors.sakura),
+    ];
 
 class WidgetsGuideScreen extends ConsumerStatefulWidget {
   const WidgetsGuideScreen({super.key});
@@ -59,21 +69,24 @@ class _WidgetsGuideScreenState extends ConsumerState<WidgetsGuideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Widget Beranda · 窓')),
+      appBar: AppBar(title: Text(t.withJp('窓', t.t('Widget layar utama', 'Home screen widgets')))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: [
           WaCard(
             pattern: true,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Pasang widget Monshika di layar beranda', style: AppTheme.serif(size: 17, weight: FontWeight.w600)),
+              Text(t.t('Pasang widget Monshika', 'Add a Monshika widget'), style: AppTheme.serif(size: 17, weight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text(
                 Platform.isIOS
-                    ? 'Tahan layar beranda › tombol + di pojok › cari "Monshika" › pilih ukuran widget.'
-                    : 'Tekan "Pasang" di bawah, atau tahan layar beranda › Widget › cari "Monshika" › seret ke beranda.',
+                    ? t.t('Tahan layar utama, ketuk + di pojok, cari Monshika, lalu pilih ukurannya.',
+                        'Press and hold your home screen, tap + in the corner, search for Monshika, and pick a size.')
+                    : t.t('Ketuk Pasang di bawah. Atau tahan layar utama, pilih Widget, cari Monshika, lalu seret ke layar.',
+                        'Tap Add below. Or press and hold your home screen, open Widgets, find Monshika, and drag it over.'),
                 style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
               ),
               const SizedBox(height: 12),
@@ -81,10 +94,10 @@ class _WidgetsGuideScreenState extends ConsumerState<WidgetsGuideScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Perbarui semua widget'),
+                    label: Text(t.t('Segarkan semua widget', 'Refresh all widgets')),
                     onPressed: () async {
                       await HomeWidgetSync.refresh(ref.read(databaseProvider));
-                      if (context.mounted) showSnack(context, 'Widget diperbarui');
+                      if (context.mounted) showSnack(context, t.t('Widget sudah diperbarui', 'Widgets refreshed'));
                     },
                   ),
                 ),
@@ -93,15 +106,16 @@ class _WidgetsGuideScreenState extends ConsumerState<WidgetsGuideScreen> {
           ),
           const SizedBox(height: 8),
           SwitchListTile(
-            title: const Text('Sembunyikan nominal di widget'),
-            subtitle: Text('Tampil sebagai •••••• — cocok kalau HP sering dilihat orang', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            title: Text(t.t('Sembunyikan nominal di widget', 'Hide amounts on widgets')),
+            subtitle: Text(t.t('Angka diganti titik-titik. Cocok kalau HP-mu sering dilihat orang.', 'Numbers show as dots. Handy if people often see your phone.'),
+                style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
             value: s.hideOnWidget,
             onChanged: (v) async {
               await ref.read(settingsProvider.notifier).setHideOnWidget(v);
               await HomeWidgetSync.refresh(ref.read(databaseProvider));
             },
           ),
-          for (final w in _widgets)
+          for (final w in _widgets(t))
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: WaCard(
@@ -125,7 +139,7 @@ class _WidgetsGuideScreenState extends ConsumerState<WidgetsGuideScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton.icon(
                             icon: const Icon(Icons.add_to_home_screen, size: 18),
-                            label: const Text('Pasang'),
+                            label: Text(t.t('Pasang', 'Add')),
                             onPressed: () => HomeWidget.requestPinWidget(qualifiedAndroidName: '${HomeWidgetSync.androidPackage}.${w.id}'),
                           ),
                         ),

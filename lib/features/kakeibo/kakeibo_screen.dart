@@ -9,11 +9,12 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 
-/// Kakeibo (家計簿) — metode pembukuan rumah tangga Jepang:
-/// rencana di awal bulan, 4 pilar pengeluaran, dan refleksi di akhir bulan.
+/// Kakeibo: cara mencatat keuangan rumah tangga ala Jepang.
+/// Buat rencana di awal bulan, kelompokkan pengeluaran ke 4 jenis, lalu evaluasi di akhir bulan.
 class KakeiboScreen extends ConsumerStatefulWidget {
   const KakeiboScreen({super.key});
 
@@ -54,6 +55,7 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
   }
 
   Future<void> _save(String key) async {
+    final t = S.of(context);
     await ref.read(databaseProvider).saveKakeibo(KakeiboMonthsCompanion(
           month: Value(key),
           plannedIncome: Value(parseAmount(_income.text) ?? 0),
@@ -65,18 +67,19 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
           reflectionImprove: Value(_rImprove.text.trim()),
           mood: Value(_mood),
         ));
-    if (mounted) await showHanko(context, glyph: '簿', label: 'Kakeibo tersimpan');
+    if (mounted) await showHanko(context, glyph: '簿', label: t.t('Tersimpan', 'Saved'));
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final range = _range;
     final key = fmtMonthKey(range.start);
     final entry = ref.watch(kakeiboMonthProvider(key));
     if (entry.hasValue) _load(entry.value, key);
     final f = ref.watch(financeProvider);
-    final txs = (ref.watch(yearTransactionsProvider).value ?? const <TxEntry>[]).where((t) => range.contains(t.date)).toList();
+    final txs = (ref.watch(yearTransactionsProvider).value ?? const <TxEntry>[]).where((x) => range.contains(x.date)).toList();
     final sum = f.summarize(txs);
     final pillars = f.pillarBreakdown(txs);
     final cur = s.baseCurrency;
@@ -89,8 +92,15 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
     final actualSaved = sum.income - sum.expense;
     String m(double v) => formatMoney(v, cur, hidden: s.hideBalance);
 
+    final savedHint = StringBuffer(t.t('Tercatat ${m(actualSaved)}', 'Recorded: ${m(actualSaved)}'));
+    if (target > 0) {
+      savedHint.write(actualSaved >= target
+          ? t.t(', target ${m(target)} tercapai 🎉', ', goal of ${m(target)} reached 🎉')
+          : t.t(', target ${m(target)} belum tercapai', ', goal of ${m(target)} not reached yet'));
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Kakeibo · 家計簿')),
+      appBar: AppBar(title: Text(t.withJp('家計簿', 'Kakeibo'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
         children: [
@@ -98,48 +108,57 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
             IconButton(onPressed: () => setState(() => _offset--), icon: const Icon(Icons.chevron_left)),
             Expanded(
               child: Column(children: [
-                Text(kJpMonths[range.start.month - 1], style: AppTheme.serif(size: 13, color: WaColors.accent)),
+                if (t.jp) Text(kJpMonths[range.start.month - 1], style: AppTheme.serif(size: 13, color: WaColors.accent)),
                 Text(fmtRange(range), style: AppTheme.serif(size: 17, weight: FontWeight.w600)),
               ]),
             ),
             IconButton(onPressed: () => setState(() => _offset++), icon: const Icon(Icons.chevron_right)),
           ]),
-          const SectionHeader(title: 'Rencana awal bulan', jp: '一'),
+          SectionHeader(title: t.t('Rencana bulan ini', "This month's plan"), jp: '一'),
           WaCard(
             child: Column(children: [
-              _money('Rencana pemasukan', _income, cur),
-              _money('Biaya tetap (kos, tagihan, cicilan)', _fixed, cur),
-              _money('Target menabung', _savings, cur),
+              _money(t.t('Perkiraan pemasukan', 'Expected income'), _income, cur),
+              _money(t.t('Biaya tetap (kos, tagihan, cicilan)', 'Fixed costs (rent, bills, installments)'), _fixed, cur),
+              _money(t.t('Target menabung', 'Savings goal'), _savings, cur),
               const Divider(height: 24),
               Row(children: [
-                Expanded(child: Text('Boleh dibelanjakan', style: AppTheme.sans(color: WaColors.washiMuted))),
+                Expanded(child: Text(t.t('Sisa untuk belanja', 'Left to spend'), style: AppTheme.sans(color: WaColors.washiMuted))),
                 Text(m(available), style: AppTheme.serif(size: 18, weight: FontWeight.w700, color: available < 0 ? WaColors.expense : WaColors.income)),
               ]),
               Row(children: [
-                Expanded(child: Text('≈ per minggu ($weeks minggu)', style: AppTheme.sans(size: 12, color: WaColors.washiMuted))),
+                Expanded(
+                  child: Text(t.t('Kira-kira per minggu ($weeks minggu)', 'About per week ($weeks weeks)'),
+                      style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                ),
                 Text(m(available / weeks), style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
               ]),
               const SizedBox(height: 12),
               TextField(
                 controller: _intention,
                 maxLines: 2,
-                decoration: const InputDecoration(hintText: 'Niat bulan ini, mis. "Kurangi jajan kopi, nabung buat liburan"'),
+                decoration: InputDecoration(
+                  hintText: t.t('Mau fokus apa bulan ini? Contoh: kurangi jajan kopi, nabung buat liburan',
+                      'What do you want to focus on? e.g. fewer coffee runs, save for a trip'),
+                ),
               ),
             ]),
           ),
-          const SectionHeader(title: 'Perjalanan bulan ini', jp: '二'),
+          SectionHeader(title: t.t('Sejauh ini', 'So far'), jp: '二'),
           WaCard(
             child: Column(children: [
-              _kv('Pemasukan aktual', m(sum.income), WaColors.income),
-              _kv('Pengeluaran aktual', m(sum.expense), WaColors.expense),
+              _kv(t.t('Uang masuk', 'Money in'), m(sum.income), WaColors.income),
+              _kv(t.t('Uang keluar', 'Money out'), m(sum.expense), WaColors.expense),
               if (available > 0) ...[
                 const SizedBox(height: 8),
                 InkBar(value: (sum.expense - fixed) / available, height: 8),
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text('${((sum.expense - fixed) / available * 100).clamp(0, 999).round()}% dari jatah belanja',
-                      style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+                  child: Text(
+                    t.t('${((sum.expense - fixed) / available * 100).clamp(0, 999).round()}% dari jatah belanja terpakai',
+                        '${((sum.expense - fixed) / available * 100).clamp(0, 999).round()}% of your spending money used'),
+                    style: AppTheme.sans(size: 11, color: WaColors.washiMuted),
+                  ),
                 ),
               ],
               const Divider(height: 24),
@@ -147,28 +166,27 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(children: [
-                    Text(kPillars[e.key]!.$2, style: AppTheme.serif(size: 18, weight: FontWeight.w700, color: WaColors.accent)),
+                    GlyphIcon(pillarGlyph(e.key), color: WaColors.accent, size: 19),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(kPillars[e.key]!.$1)),
+                    Expanded(child: Text(pillarLabel(t, e.key))),
                     Text(m(e.value), style: AppTheme.sans(weight: FontWeight.w600)),
                   ]),
                 ),
             ]),
           ),
-          const SectionHeader(title: 'Refleksi akhir bulan', jp: '三'),
+          SectionHeader(title: t.t('Catatan akhir bulan', 'Month-end review'), jp: '三'),
           WaCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _question('1. Berapa yang berhasil ditabung?',
-                  'Tercatat: ${m(actualSaved)}${target > 0 ? ' (target ${m(target)} — ${actualSaved >= target ? 'tercapai 🎉' : 'belum tercapai'})' : ''}'),
-              TextField(controller: _rSaved, maxLines: 2, decoration: const InputDecoration(hintText: 'Catatan tentang tabunganmu')),
+              _question(t.t('1. Berapa yang berhasil ditabung?', '1. How much did you save?'), savedHint.toString()),
+              TextField(controller: _rSaved, maxLines: 2, decoration: InputDecoration(hintText: t.t('Cerita soal tabunganmu', 'A few words about your savings'))),
               const SizedBox(height: 14),
-              _question('2. Ke mana uang paling banyak pergi?', null),
-              TextField(controller: _rSpent, maxLines: 2, decoration: const InputDecoration(hintText: 'Apa yang sebenarnya tidak perlu?')),
+              _question(t.t('2. Uang paling banyak habis buat apa?', '2. Where did most of the money go?'), null),
+              TextField(controller: _rSpent, maxLines: 2, decoration: InputDecoration(hintText: t.t('Mana yang sebenarnya tidak perlu?', "What didn't you really need?"))),
               const SizedBox(height: 14),
-              _question('3. Bagaimana memperbaikinya bulan depan?', null),
-              TextField(controller: _rImprove, maxLines: 2, decoration: const InputDecoration(hintText: 'Satu kebiasaan kecil yang mau diubah')),
+              _question(t.t('3. Apa yang mau diubah bulan depan?', '3. What will you change next month?'), null),
+              TextField(controller: _rImprove, maxLines: 2, decoration: InputDecoration(hintText: t.t('Satu kebiasaan kecil saja cukup', 'One small habit is enough'))),
               const SizedBox(height: 14),
-              _question('4. Bagaimana perasaanmu tentang keuangan bulan ini?', null),
+              _question(t.t('4. Gimana perasaanmu soal keuangan bulan ini?', '4. How do you feel about money this month?'), null),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -192,7 +210,7 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
             ]),
           ),
           const SizedBox(height: 20),
-          FilledButton(onPressed: () => _save(key), child: const Text('Simpan Kakeibo')),
+          FilledButton(onPressed: () => _save(key), child: Text(t.save)),
         ],
       ),
     );

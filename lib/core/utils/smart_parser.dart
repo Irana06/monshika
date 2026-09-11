@@ -11,59 +11,106 @@ class ParsedInput {
 }
 
 const _incomeWords = {
+  // Indonesia
   'gaji', 'gajian', 'bonus', 'thr', 'terima', 'diterima', 'dapat', 'masuk', 'jual', 'refund', 'cashback',
-  'income', 'pemasukan', 'dividen', 'bunga', 'komisi', 'fee', 'honor', 'transferan',
+  'pemasukan', 'dividen', 'bunga', 'komisi', 'honor', 'transferan',
+  // English
+  'salary', 'paycheck', 'income', 'received', 'earned', 'sold', 'dividend', 'interest', 'commission', 'payout',
 };
 
-/// Kata kunci → nama kategori bawaan.
+/// Nama kategori bawaan (Indonesia, Inggris) per kunci.
+const _categoryNames = <String, (String, String)>{
+  'coffee': ('Kopi & jajan', 'Coffee & snacks'),
+  'food': ('Makan & minum', 'Food & drinks'),
+  'eatout': ('Makan di luar', 'Eating out'),
+  'groceries': ('Belanja harian', 'Groceries'),
+  'ride': ('Ojek online', 'Ride hailing'),
+  'fuel': ('Bensin', 'Fuel'),
+  'parking': ('Parkir & tol', 'Parking & tolls'),
+  'transport': ('Transportasi', 'Transport'),
+  'electricity': ('Listrik', 'Electricity'),
+  'internet': ('Internet', 'Internet'),
+  'phone': ('Pulsa & kuota', 'Phone & data'),
+  'water': ('Air', 'Water'),
+  'housing': ('Tempat tinggal', 'Housing'),
+  'health': ('Kesehatan', 'Health'),
+  'education': ('Pendidikan', 'Education'),
+  'fun': ('Hiburan', 'Entertainment'),
+  'shopping': ('Belanja & fashion', 'Shopping'),
+  'subs': ('Langganan', 'Subscriptions'),
+  'selfcare': ('Perawatan diri', 'Self care'),
+  'sports': ('Olahraga', 'Sports'),
+  'gifts': ('Hadiah & donasi', 'Gifts & charity'),
+  'travel': ('Liburan', 'Travel'),
+  'taxes': ('Pajak & biaya', 'Taxes & fees'),
+  'installment': ('Cicilan', 'Installments'),
+  'salary': ('Gaji', 'Salary'),
+  'bonus': ('Bonus & THR', 'Bonus'),
+  'freelance': ('Freelance', 'Freelance'),
+  'invest': ('Investasi', 'Investments'),
+  'sales': ('Penjualan', 'Sales'),
+  'cashback': ('Cashback & refund', 'Cashback & refunds'),
+};
+
+/// Kata kunci ke kunci kategori.
 const _keywordCategory = <String, String>{
-  'kopi': 'Kopi & Jajan', 'coffee': 'Kopi & Jajan', 'jajan': 'Kopi & Jajan', 'snack': 'Kopi & Jajan',
-  'boba': 'Kopi & Jajan', 'teh': 'Kopi & Jajan', 'es': 'Kopi & Jajan',
-  'makan': 'Makan & Minum', 'sarapan': 'Makan & Minum', 'lunch': 'Makan & Minum', 'dinner': 'Makan & Minum',
-  'nasi': 'Makan & Minum', 'bakso': 'Makan & Minum', 'mie': 'Makan & Minum', 'warteg': 'Makan & Minum',
-  'resto': 'Makan di Luar', 'restoran': 'Makan di Luar', 'cafe': 'Makan di Luar', 'gofood': 'Makan di Luar',
-  'grabfood': 'Makan di Luar', 'shopeefood': 'Makan di Luar',
-  'indomaret': 'Belanja Harian', 'alfamart': 'Belanja Harian', 'sayur': 'Belanja Harian', 'beras': 'Belanja Harian',
-  'pasar': 'Belanja Harian', 'supermarket': 'Belanja Harian', 'galon': 'Belanja Harian', 'sabun': 'Belanja Harian',
-  'gojek': 'Ojek Online', 'grab': 'Ojek Online', 'ojol': 'Ojek Online', 'maxim': 'Ojek Online', 'ojek': 'Ojek Online',
-  'bensin': 'Bensin', 'pertalite': 'Bensin', 'pertamax': 'Bensin', 'solar': 'Bensin',
-  'parkir': 'Parkir & Tol', 'tol': 'Parkir & Tol', 'etoll': 'Parkir & Tol',
-  'krl': 'Transportasi', 'mrt': 'Transportasi', 'transjakarta': 'Transportasi', 'kereta': 'Transportasi',
-  'bus': 'Transportasi', 'pesawat': 'Liburan', 'tiket': 'Transportasi',
-  'listrik': 'Listrik', 'pln': 'Listrik', 'token': 'Listrik',
-  'internet': 'Internet', 'wifi': 'Internet', 'indihome': 'Internet', 'biznet': 'Internet',
-  'pulsa': 'Pulsa & Kuota', 'kuota': 'Pulsa & Kuota', 'paket': 'Pulsa & Kuota',
-  'pdam': 'Air',
-  'kos': 'Tempat Tinggal', 'kost': 'Tempat Tinggal', 'sewa': 'Tempat Tinggal', 'kontrakan': 'Tempat Tinggal',
-  'obat': 'Kesehatan', 'dokter': 'Kesehatan', 'apotek': 'Kesehatan', 'bpjs': 'Kesehatan', 'vitamin': 'Kesehatan',
-  'buku': 'Pendidikan', 'kursus': 'Pendidikan', 'kuliah': 'Pendidikan', 'spp': 'Pendidikan', 'udemy': 'Pendidikan',
-  'nonton': 'Hiburan', 'bioskop': 'Hiburan', 'game': 'Hiburan', 'steam': 'Hiburan', 'konser': 'Hiburan',
-  'karaoke': 'Hiburan', 'topup': 'Hiburan',
-  'baju': 'Belanja & Fashion', 'sepatu': 'Belanja & Fashion', 'celana': 'Belanja & Fashion',
-  'shopee': 'Belanja & Fashion', 'tokopedia': 'Belanja & Fashion', 'lazada': 'Belanja & Fashion', 'tiktok': 'Belanja & Fashion',
-  'netflix': 'Langganan', 'spotify': 'Langganan', 'youtube': 'Langganan', 'disney': 'Langganan',
-  'icloud': 'Langganan', 'chatgpt': 'Langganan', 'claude': 'Langganan', 'langganan': 'Langganan',
-  'potong': 'Perawatan Diri', 'salon': 'Perawatan Diri', 'skincare': 'Perawatan Diri', 'barbershop': 'Perawatan Diri',
-  'gym': 'Olahraga', 'futsal': 'Olahraga', 'badminton': 'Olahraga', 'renang': 'Olahraga',
-  'sedekah': 'Hadiah & Donasi', 'donasi': 'Hadiah & Donasi', 'zakat': 'Hadiah & Donasi', 'kado': 'Hadiah & Donasi',
-  'infaq': 'Hadiah & Donasi', 'kondangan': 'Hadiah & Donasi',
-  'hotel': 'Liburan', 'liburan': 'Liburan', 'travel': 'Liburan',
-  'pajak': 'Pajak & Biaya', 'admin': 'Pajak & Biaya',
-  'cicilan': 'Cicilan', 'angsuran': 'Cicilan', 'kredit': 'Cicilan',
-  'servis': 'Transportasi', 'bengkel': 'Transportasi',
-  'gaji': 'Gaji', 'gajian': 'Gaji', 'bonus': 'Bonus & THR', 'thr': 'Bonus & THR',
-  'freelance': 'Freelance', 'project': 'Freelance', 'proyek': 'Freelance', 'honor': 'Freelance',
-  'dividen': 'Investasi', 'bunga': 'Investasi', 'jual': 'Penjualan', 'cashback': 'Cashback & Refund',
-  'refund': 'Cashback & Refund',
+  // Kopi & jajan
+  'kopi': 'coffee', 'coffee': 'coffee', 'jajan': 'coffee', 'snack': 'coffee', 'snacks': 'coffee', 'boba': 'coffee',
+  'teh': 'coffee', 'tea': 'coffee', 'latte': 'coffee', 'starbucks': 'coffee',
+  // Makan
+  'makan': 'food', 'sarapan': 'food', 'nasi': 'food', 'bakso': 'food', 'mie': 'food', 'warteg': 'food',
+  'lunch': 'food', 'dinner': 'food', 'breakfast': 'food', 'food': 'food', 'meal': 'food',
+  'resto': 'eatout', 'restoran': 'eatout', 'restaurant': 'eatout', 'cafe': 'eatout', 'gofood': 'eatout',
+  'grabfood': 'eatout', 'shopeefood': 'eatout',
+  // Belanja harian
+  'indomaret': 'groceries', 'alfamart': 'groceries', 'sayur': 'groceries', 'beras': 'groceries', 'pasar': 'groceries',
+  'supermarket': 'groceries', 'galon': 'groceries', 'sabun': 'groceries', 'groceries': 'groceries', 'grocery': 'groceries',
+  // Transport
+  'gojek': 'ride', 'grab': 'ride', 'ojol': 'ride', 'maxim': 'ride', 'ojek': 'ride', 'uber': 'ride', 'taxi': 'ride',
+  'bensin': 'fuel', 'pertalite': 'fuel', 'pertamax': 'fuel', 'solar': 'fuel', 'fuel': 'fuel', 'gas': 'fuel',
+  'parkir': 'parking', 'tol': 'parking', 'etoll': 'parking', 'parking': 'parking', 'toll': 'parking',
+  'krl': 'transport', 'mrt': 'transport', 'transjakarta': 'transport', 'kereta': 'transport', 'bus': 'transport',
+  'train': 'transport', 'tiket': 'transport', 'servis': 'transport', 'bengkel': 'transport',
+  // Tagihan
+  'listrik': 'electricity', 'pln': 'electricity', 'token': 'electricity', 'electricity': 'electricity',
+  'internet': 'internet', 'wifi': 'internet', 'indihome': 'internet', 'biznet': 'internet',
+  'pulsa': 'phone', 'kuota': 'phone', 'paket': 'phone', 'data': 'phone',
+  'pdam': 'water', 'water': 'water',
+  'kos': 'housing', 'kost': 'housing', 'sewa': 'housing', 'kontrakan': 'housing', 'rent': 'housing',
+  // Lainnya
+  'obat': 'health', 'dokter': 'health', 'apotek': 'health', 'bpjs': 'health', 'vitamin': 'health',
+  'doctor': 'health', 'pharmacy': 'health', 'medicine': 'health',
+  'buku': 'education', 'kursus': 'education', 'kuliah': 'education', 'spp': 'education', 'udemy': 'education',
+  'book': 'education', 'course': 'education', 'tuition': 'education',
+  'nonton': 'fun', 'bioskop': 'fun', 'game': 'fun', 'steam': 'fun', 'konser': 'fun', 'karaoke': 'fun',
+  'topup': 'fun', 'movie': 'fun', 'cinema': 'fun', 'concert': 'fun',
+  'baju': 'shopping', 'sepatu': 'shopping', 'celana': 'shopping', 'shopee': 'shopping', 'tokopedia': 'shopping',
+  'lazada': 'shopping', 'tiktok': 'shopping', 'clothes': 'shopping', 'shoes': 'shopping', 'amazon': 'shopping',
+  'netflix': 'subs', 'spotify': 'subs', 'youtube': 'subs', 'disney': 'subs', 'icloud': 'subs', 'chatgpt': 'subs',
+  'claude': 'subs', 'langganan': 'subs', 'subscription': 'subs',
+  'potong': 'selfcare', 'salon': 'selfcare', 'skincare': 'selfcare', 'barbershop': 'selfcare', 'haircut': 'selfcare',
+  'gym': 'sports', 'futsal': 'sports', 'badminton': 'sports', 'renang': 'sports', 'swimming': 'sports',
+  'sedekah': 'gifts', 'donasi': 'gifts', 'zakat': 'gifts', 'kado': 'gifts', 'infaq': 'gifts', 'kondangan': 'gifts',
+  'gift': 'gifts', 'donation': 'gifts', 'charity': 'gifts',
+  'hotel': 'travel', 'liburan': 'travel', 'travel': 'travel', 'pesawat': 'travel', 'flight': 'travel',
+  'pajak': 'taxes', 'admin': 'taxes', 'tax': 'taxes', 'fee': 'taxes',
+  'cicilan': 'installment', 'angsuran': 'installment', 'kredit': 'installment', 'installment': 'installment',
+  // Pemasukan
+  'gaji': 'salary', 'gajian': 'salary', 'salary': 'salary', 'paycheck': 'salary',
+  'bonus': 'bonus', 'thr': 'bonus',
+  'freelance': 'freelance', 'project': 'freelance', 'proyek': 'freelance', 'honor': 'freelance',
+  'dividen': 'invest', 'bunga': 'invest', 'dividend': 'invest', 'interest': 'invest',
+  'jual': 'sales', 'sold': 'sales',
+  'cashback': 'cashback', 'refund': 'cashback',
 };
 
 final _amountRe = RegExp(
-  r'(^|\s)([+\-])?\s*(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta|m|mio|miliar|t)?(?=\s|$)',
+  r'(^|\s)([+\-])?\s*(?:rp\.?\s*|\$\s*)?(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(rb|ribu|k|jt|juta|m|mio|miliar|t)?(?=\s|$)',
   caseSensitive: false,
 );
 
-/// Parser teks bebas untuk input cepat, contoh:
-/// `kopi 25rb`, `gojek 18.500 ovo`, `+8jt gaji`, `bensin 50k cash`.
+/// Parser teks bebas untuk catat cepat, contoh:
+/// `kopi 25rb`, `gojek 18.500 ovo`, `+8jt gaji`, `coffee 5 cash`.
 ParsedInput parseQuickInput(
   String input, {
   required List<TxCategory> categories,
@@ -141,9 +188,13 @@ ParsedInput parseQuickInput(
   }
   if (categoryId == null) {
     for (final w in words) {
-      final target = _keywordCategory[w];
-      if (target == null) continue;
-      final found = typed.where((c) => c.name == target);
+      final key = _keywordCategory[w];
+      final names = key == null ? null : _categoryNames[key];
+      if (names == null) continue;
+      final found = typed.where((c) {
+        final n = c.name.toLowerCase();
+        return n == names.$1.toLowerCase() || n == names.$2.toLowerCase();
+      });
       if (found.isNotEmpty) {
         categoryId = found.first.id;
         break;

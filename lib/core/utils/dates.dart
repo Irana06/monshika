@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../../l10n/strings.dart';
+
 class DateRange {
   const DateRange(this.start, this.end);
 
@@ -37,7 +39,7 @@ DateTime addMonths(DateTime d, int months) {
 }
 
 /// Periode bulanan yang dimulai pada [startDay] (mis. tanggal gajian 25).
-/// Tanggal 29–31 dipotong ke hari terakhir pada bulan yang lebih pendek.
+/// Tanggal 29 sampai 31 dipotong ke hari terakhir pada bulan yang lebih pendek.
 DateRange monthRange(DateTime ref, {int startDay = 1}) {
   final day = startDay.clamp(1, 31);
   DateTime startOf(int year, int month) {
@@ -50,7 +52,7 @@ DateRange monthRange(DateTime ref, {int startDay = 1}) {
   return DateRange(start, startOf(start.year, start.month + 1));
 }
 
-/// [firstWeekday] mengikuti DateTime.monday (1) … DateTime.sunday (7).
+/// [firstWeekday] mengikuti DateTime.monday (1) sampai DateTime.sunday (7).
 DateRange weekRange(DateTime ref, {int firstWeekday = DateTime.monday}) {
   final d = dateOnly(ref);
   final diff = (d.weekday - firstWeekday) % 7;
@@ -75,42 +77,55 @@ DateRange periodRange(String period, DateTime ref, {int monthStartDay = 1, int f
 const kJpWeekdays = ['月', '火', '水', '木', '金', '土', '日'];
 const kJpMonths = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
-String fmtDate(DateTime d) => DateFormat('d MMM yyyy', 'id_ID').format(d);
-String fmtDateShort(DateTime d) => DateFormat('d MMM', 'id_ID').format(d);
-String fmtDateLong(DateTime d) => DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(d);
-String fmtTime(DateTime d) => DateFormat('HH:mm', 'id_ID').format(d);
-String fmtMonthYear(DateTime d) => DateFormat('MMMM yyyy', 'id_ID').format(d);
+String get _locale => S.current.dateLocale;
+
+/// Nama hari singkat. Kanji bila gaya Jepang aktif.
+String weekdayShort(int weekday) {
+  if (S.current.jp) return kJpWeekdays[weekday - 1];
+  // 2024-01-01 adalah hari Senin.
+  return DateFormat('E', _locale).format(DateTime(2024, 1, weekday));
+}
+
+/// Nama bulan singkat. Kanji bila gaya Jepang aktif.
+String monthShort(DateTime d) => S.current.jp ? kJpMonths[d.month - 1] : DateFormat('MMM', _locale).format(d);
+
+String fmtDate(DateTime d) => DateFormat('d MMM yyyy', _locale).format(d);
+String fmtDateShort(DateTime d) => DateFormat('d MMM', _locale).format(d);
+String fmtDateLong(DateTime d) => DateFormat('EEEE, d MMMM yyyy', _locale).format(d);
+String fmtTime(DateTime d) => DateFormat('HH:mm', _locale).format(d);
+String fmtMonthYear(DateTime d) => DateFormat('MMMM yyyy', _locale).format(d);
 String fmtMonthKey(DateTime d) => DateFormat('yyyy-MM').format(d);
 
 String fmtRange(DateRange r) {
   final last = r.end.subtract(const Duration(days: 1));
   if (r.start.day == 1 && r.end.day == 1 && r.days >= 28 && r.days <= 31) return fmtMonthYear(r.start);
-  if (r.start.year == last.year) return '${fmtDateShort(r.start)} – ${fmtDate(last)}';
-  return '${fmtDate(r.start)} – ${fmtDate(last)}';
+  if (r.start.year == last.year) return '${fmtDateShort(r.start)} - ${fmtDate(last)}';
+  return '${fmtDate(r.start)} - ${fmtDate(last)}';
 }
 
 /// "Hari ini", "Kemarin", atau tanggal lengkap.
 String fmtRelativeDay(DateTime d) {
+  final s = S.current;
   final today = dateOnly(DateTime.now());
-  final day = dateOnly(d);
-  final diff = today.difference(day).inDays;
-  if (diff == 0) return 'Hari ini';
-  if (diff == 1) return 'Kemarin';
-  if (diff == -1) return 'Besok';
-  return DateFormat('EEEE, d MMM yyyy', 'id_ID').format(d);
+  final diff = today.difference(dateOnly(d)).inDays;
+  if (diff == 0) return s.today;
+  if (diff == 1) return s.yesterday;
+  if (diff == -1) return s.tomorrow;
+  return DateFormat('EEEE, d MMM yyyy', _locale).format(d);
 }
 
-/// Salam sesuai waktu, dengan sentuhan Jepang.
-(String jp, String id) greeting([DateTime? now]) {
+/// Salam sesuai waktu: (label Jepang, salam biasa).
+(String jp, String text) greeting([DateTime? now]) {
+  final s = S.current;
   final h = (now ?? DateTime.now()).hour;
-  if (h < 4) return ('こんばんは', 'Selamat malam');
-  if (h < 11) return ('おはよう', 'Selamat pagi');
-  if (h < 15) return ('こんにちは', 'Selamat siang');
-  if (h < 18) return ('こんにちは', 'Selamat sore');
-  return ('こんばんは', 'Selamat malam');
+  if (h < 4) return ('こんばんは', s.t('Selamat malam', 'Good evening'));
+  if (h < 11) return ('おはよう', s.t('Selamat pagi', 'Good morning'));
+  if (h < 15) return ('こんにちは', s.t('Selamat siang', 'Good afternoon'));
+  if (h < 18) return ('こんにちは', s.t('Selamat sore', 'Good afternoon'));
+  return ('こんばんは', s.t('Selamat malam', 'Good evening'));
 }
 
-/// Musim (季節) untuk motif dekoratif.
+/// Musim untuk motif dekoratif.
 enum Season { spring, summer, autumn, winter }
 
 Season seasonOf(DateTime d) => switch (d.month) {
@@ -121,6 +136,5 @@ Season seasonOf(DateTime d) => switch (d.month) {
     };
 
 extension SeasonX on Season {
-  String get kanji => switch (this) { Season.spring => '春', Season.summer => '夏', Season.autumn => '秋', Season.winter => '冬' };
   String get motif => switch (this) { Season.spring => '🌸', Season.summer => '🎐', Season.autumn => '🍁', Season.winter => '❄️' };
 }

@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../common/pickers.dart';
 
@@ -15,16 +16,17 @@ class CategoriesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Kategori · 分類'),
-          bottom: const TabBar(
+          title: Text(s.withJp('分類', s.categories)),
+          bottom: TabBar(
             indicatorColor: WaColors.accent,
             labelColor: WaColors.accent,
             unselectedLabelColor: WaColors.washiMuted,
-            tabs: [Tab(text: 'Pengeluaran'), Tab(text: 'Pemasukan')],
+            tabs: [Tab(text: s.expense), Tab(text: s.income)],
           ),
         ),
         floatingActionButton: Builder(
@@ -50,6 +52,7 @@ class _CatList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
     final all = (ref.watch(categoriesProvider).value ?? const <TxCategory>[]).where((c) => c.type == type && !c.isSystem).toList();
     final roots = all.where((c) => c.parentId == null).toList();
 
@@ -58,7 +61,7 @@ class _CatList extends ConsumerWidget {
           leading: KanjiBadge(glyph: c.icon, color: Color(c.color), size: child ? 32 : 40),
           title: Text(c.name, style: AppTheme.sans(size: child ? 14 : 15, weight: child ? FontWeight.w500 : FontWeight.w600, color: c.archived ? WaColors.washiFaint : null)),
           subtitle: type == 'expense' && c.pillar != null
-              ? Text('${kPillars[c.pillar]?.$2} ${kPillars[c.pillar]?.$1}', style: AppTheme.sans(size: 11, color: WaColors.washiMuted))
+              ? Text(s.withJp(pillarGlyph(c.pillar!), pillarLabel(s, c.pillar!)), style: AppTheme.sans(size: 11, color: WaColors.washiMuted))
               : null,
           trailing: c.archived ? const Icon(Icons.inventory_2_outlined, size: 18) : const Icon(Icons.chevron_right, color: WaColors.washiFaint),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryFormScreen(type: type, existing: c))),
@@ -96,7 +99,8 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   late bool _archived = widget.existing?.archived ?? false;
 
   Future<void> _save() async {
-    if (_name.text.trim().isEmpty) return showSnack(context, 'Nama kategori wajib diisi');
+    final s = S.of(context);
+    if (_name.text.trim().isEmpty) return showSnack(context, s.t('Nama kategori belum diisi', 'Give the category a name'));
     await ref.read(databaseProvider).saveCategory(CategoriesCompanion(
           id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
           name: Value(_name.text.trim()),
@@ -111,6 +115,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   }
 
   Future<void> _delete() async {
+    final s = S.of(context);
     final c = widget.existing!;
     final cats = (ref.read(categoriesProvider).value ?? const <TxCategory>[])
         .where((x) => x.type == c.type && x.id != c.id && !x.isSystem && x.parentId != c.id)
@@ -123,9 +128,9 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
         child: ListView(shrinkWrap: true, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Pindahkan transaksinya ke…', style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+            child: Text(s.t('Pindahkan transaksinya ke mana?', 'Move its transactions to'), style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
           ),
-          ListTile(leading: const Icon(Icons.block), title: const Text('Tanpa kategori'), onTap: () => Navigator.pop(ctx, -1)),
+          ListTile(leading: const Icon(Icons.block), title: Text(s.noCategory), onTap: () => Navigator.pop(ctx, -1)),
           for (final x in cats)
             ListTile(
               leading: KanjiBadge(glyph: x.icon, color: Color(x.color), size: 32),
@@ -142,6 +147,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final roots = (ref.watch(categoriesProvider).value ?? const <TxCategory>[])
         .where((c) => c.type == widget.type && c.parentId == null && !c.isSystem && c.id != widget.existing?.id)
         .toList();
@@ -150,7 +156,7 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Kategori Baru' : 'Ubah Kategori'),
+        title: Text(widget.existing == null ? s.t('Kategori baru', 'New category') : s.t('Ubah kategori', 'Edit category')),
         actions: [if (widget.existing != null) IconButton(onPressed: _delete, icon: const Icon(Icons.delete_outline))],
       ),
       body: ListView(
@@ -166,45 +172,56 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          LabeledField(label: 'Nama', child: TextField(controller: _name)),
+          LabeledField(label: s.name, child: TextField(controller: _name)),
           if (!hasChildren)
             LabeledField(
-              label: 'Induk (opsional — jadikan sub-kategori)',
+              label: s.t('Masuk ke kategori (opsional)', 'Put under (optional)'),
               child: DropdownButtonFormField<int?>(
                 initialValue: _parentId,
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('— Kategori utama —')),
-                  for (final r in roots) DropdownMenuItem<int?>(value: r.id, child: Text('${r.icon}  ${r.name}')),
+                  DropdownMenuItem<int?>(value: null, child: Text(s.t('Tidak, jadikan kategori utama', 'None, keep it as a main category'))),
+                  for (final r in roots)
+                    DropdownMenuItem<int?>(
+                      value: r.id,
+                      child: Row(children: [
+                        GlyphIcon(r.icon, color: Color(r.color), size: 18),
+                        const SizedBox(width: 10),
+                        Text(r.name),
+                      ]),
+                    ),
                 ],
                 onChanged: (v) => setState(() => _parentId = v),
               ),
             ),
           if (widget.type == 'expense')
             LabeledField(
-              label: 'Pilar Kakeibo',
-              child: Column(children: [
-                for (final e in kPillars.entries)
-                  RadioListTile<String>(
-                    contentPadding: EdgeInsets.zero,
-                    value: e.key,
-                    groupValue: _pillar,
-                    onChanged: (v) => setState(() => _pillar = v),
-                    title: Text('${e.value.$2}  ${e.value.$1}'),
-                    subtitle: Text(e.value.$3, style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
-                  ),
-              ]),
+              label: s.t('Jenis pengeluaran (Kakeibo)', 'Spending type (Kakeibo)'),
+              child: RadioGroup<String>(
+                groupValue: _pillar,
+                onChanged: (v) => setState(() => _pillar = v),
+                child: Column(children: [
+                  for (final key in kPillarKeys)
+                    RadioListTile<String>(
+                      contentPadding: EdgeInsets.zero,
+                      value: key,
+                      title: Text(s.withJp(pillarGlyph(key), pillarLabel(s, key))),
+                      subtitle: Text(pillarDesc(s, key), style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+                    ),
+                ]),
+              ),
             ),
-          LabeledField(label: 'Warna', child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
+          LabeledField(label: s.color, child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
           if (widget.existing != null)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Arsipkan'),
-              subtitle: Text('Tidak muncul saat memilih kategori', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+              title: Text(s.archive),
+              subtitle: Text(s.t('Tidak muncul lagi saat memilih kategori', "Won't show up when picking a category"),
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
               value: _archived,
               onChanged: (v) => setState(() => _archived = v),
             ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _save, child: Text(s.save)),
         ],
       ),
     );

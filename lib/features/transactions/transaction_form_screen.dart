@@ -14,6 +14,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/finance.dart';
 import '../../services/money_actions.dart';
@@ -41,7 +42,7 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
   final double? initialAmount;
   final String? initialNote;
 
-  /// Bila diisi, dipanggil setelah simpan (mis. dialog quick-add menutup activity).
+  /// Bila diisi, dipanggil setelah simpan (mis. dialog catat cepat menutup activity).
   final VoidCallback? onSaved;
 
   @override
@@ -145,21 +146,22 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 
   Future<void> _pickTime() async {
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_date));
-    if (t != null) setState(() => _date = DateTime(_date.year, _date.month, _date.day, t.hour, t.minute));
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_date));
+    if (time != null) setState(() => _date = DateTime(_date.year, _date.month, _date.day, time.hour, time.minute));
   }
 
   Future<void> _pickReceipt() async {
+    final t = S.of(context);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.photo_camera), title: const Text('Kamera'), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
-          ListTile(leading: const Icon(Icons.photo_library), title: const Text('Galeri'), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
+          ListTile(leading: const Icon(Icons.photo_camera), title: Text(t.t('Kamera', 'Camera')), onTap: () => Navigator.pop(ctx, ImageSource.camera)),
+          ListTile(leading: const Icon(Icons.photo_library), title: Text(t.t('Galeri', 'Gallery')), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
           if (_receiptPath != null)
             ListTile(
               leading: const Icon(Icons.delete_outline, color: WaColors.expense),
-              title: const Text('Hapus foto'),
+              title: Text(t.t('Hapus foto', 'Remove photo')),
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() => _receiptPath = null);
@@ -179,6 +181,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 
   Future<void> _pickTags() async {
+    final t = S.of(context);
     final tags = ref.read(tagsProvider).value ?? const <Tag>[];
     final selected = {..._tagIds};
     final newTag = TextEditingController();
@@ -198,12 +201,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final t in ref.read(tagsProvider).value ?? tags)
+                  for (final tag in ref.read(tagsProvider).value ?? tags)
                     FilterChip(
-                      selected: selected.contains(t.id),
-                      avatar: CircleAvatar(backgroundColor: Color(t.color), radius: 5),
-                      label: Text('#${t.name}'),
-                      onSelected: (v) => setSheet(() => v ? selected.add(t.id) : selected.remove(t.id)),
+                      selected: selected.contains(tag.id),
+                      avatar: CircleAvatar(backgroundColor: Color(tag.color), radius: 5),
+                      label: Text('#${tag.name}'),
+                      onSelected: (v) => setSheet(() => v ? selected.add(tag.id) : selected.remove(tag.id)),
                     ),
                 ],
               ),
@@ -211,7 +214,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               TextField(
                 controller: newTag,
                 decoration: InputDecoration(
-                  hintText: 'Tag baru…',
+                  hintText: t.t('Tag baru', 'New tag'),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.add),
                     onPressed: () async {
@@ -231,7 +234,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Selesai')),
+                child: FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(t.done)),
               ),
             ],
           ),
@@ -242,11 +245,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 
   Future<void> _save() async {
+    final t = S.of(context);
     final amount = _calc.value;
-    if (amount <= 0) return showSnack(context, 'Masukkan nominal terlebih dulu');
-    if (_accountId == null) return showSnack(context, 'Pilih dompet');
+    if (amount <= 0) return showSnack(context, t.t('Isi nominalnya dulu', 'Enter an amount first'));
+    if (_accountId == null) return showSnack(context, t.chooseWallet);
     if (_type == 'transfer' && (_toAccountId == null || _toAccountId == _accountId)) {
-      return showSnack(context, 'Pilih dompet tujuan yang berbeda');
+      return showSnack(context, t.t('Pilih dompet tujuan yang lain', 'Pick a different destination wallet'));
     }
     setState(() => _saving = true);
     final db = ref.read(databaseProvider);
@@ -291,7 +295,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
     if (!mounted) return;
     if (settings.hankoAnimation) {
-      await showHanko(context, glyph: _type == 'income' ? '入' : (_type == 'transfer' ? '移' : '済'), label: _isEdit ? 'Diperbarui' : 'Tercatat');
+      await showHanko(
+        context,
+        glyph: _type == 'income' ? '入' : (_type == 'transfer' ? '移' : '済'),
+        label: _isEdit ? t.t('Diperbarui', 'Updated') : t.t('Tersimpan', 'Saved'),
+      );
     } else {
       HapticFeedback.lightImpact();
     }
@@ -304,7 +312,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   }
 
   Future<void> _delete() async {
-    final ok = await confirmDialog(context, title: 'Hapus transaksi?', message: 'Transaksi ini akan dihapus permanen.');
+    final t = S.of(context);
+    final ok = await confirmDialog(
+      context,
+      title: t.t('Hapus transaksi ini?', 'Delete this transaction?'),
+      message: t.t('Transaksinya akan dihapus permanen.', 'It will be deleted for good.'),
+    );
     if (!ok) return;
     await ref.read(databaseProvider).deleteTransaction(widget.existing!.id);
     if (mounted) Navigator.pop(context, true);
@@ -312,6 +325,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final accounts = ref.watch(accountMapProvider);
     final categories = ref.watch(categoryMapProvider);
     final account = accounts[_accountId];
@@ -319,25 +333,25 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final currency = account?.currency ?? ref.watch(settingsProvider).baseCurrency;
     final typeColor = WaColors.forType(_type);
     final cat = _categoryId == null ? null : categories[_categoryId];
-    final tagMap = {for (final t in ref.watch(tagsProvider).value ?? const <Tag>[]) t.id: t};
+    final tagMap = {for (final tag in ref.watch(tagsProvider).value ?? const <Tag>[]) tag.id: tag};
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Ubah Transaksi' : 'Transaksi Baru'),
+        title: Text(_isEdit ? t.t('Ubah transaksi', 'Edit transaction') : t.t('Transaksi baru', 'New transaction')),
         actions: [
           if (_isEdit) ...[
             IconButton(
-              tooltip: 'Duplikat',
+              tooltip: t.t('Duplikat', 'Duplicate'),
               icon: const Icon(Icons.copy_all_outlined),
               onPressed: () async {
                 await MoneyActions(ref.read(databaseProvider)).duplicateTransaction(widget.existing!);
                 if (context.mounted) {
-                  showSnack(context, 'Transaksi diduplikat ke hari ini');
+                  showSnack(context, t.t('Disalin ke hari ini', 'Copied to today'));
                   Navigator.pop(context);
                 }
               },
             ),
-            IconButton(tooltip: 'Hapus', icon: const Icon(Icons.delete_outline), onPressed: _delete),
+            IconButton(tooltip: t.delete, icon: const Icon(Icons.delete_outline), onPressed: _delete),
           ],
         ],
       ),
@@ -348,10 +362,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             child: SizedBox(
               width: double.infinity,
               child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'expense', label: Text('Pengeluaran')),
-                  ButtonSegment(value: 'income', label: Text('Pemasukan')),
-                  ButtonSegment(value: 'transfer', label: Text('Transfer')),
+                segments: [
+                  ButtonSegment(value: 'expense', label: Text(t.expense)),
+                  ButtonSegment(value: 'income', label: Text(t.income)),
+                  ButtonSegment(value: 'transfer', label: Text(t.transfer)),
                 ],
                 selected: {_type},
                 showSelectedIcon: false,
@@ -399,40 +413,46 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               children: [
                 LabeledField(
-                  label: _type == 'transfer' ? 'Dari dompet' : 'Dompet',
+                  label: _type == 'transfer' ? t.t('Dari dompet', 'From wallet') : t.wallet,
                   child: PickerTile(
                     leading: KanjiBadge(glyph: account?.icon ?? '財', color: Color(account?.color ?? WaColors.nezumi.toARGB32()), size: 36),
-                    title: account?.name ?? 'Pilih dompet',
+                    title: account?.name ?? t.chooseWallet,
                     subtitle: account == null ? null : currency,
                     onTap: () async {
                       final id = await showAccountPicker(context, ref, selectedId: _accountId);
-                      if (id != null) setState(() {
-                        _accountId = id;
-                        if (_type == 'transfer') _syncToAmount();
-                      });
+                      if (id != null) {
+                        setState(() {
+                          _accountId = id;
+                          if (_type == 'transfer') _syncToAmount();
+                        });
+                      }
                     },
                   ),
                 ),
                 if (_type == 'transfer') ...[
                   LabeledField(
-                    label: 'Ke dompet',
+                    label: t.t('Ke dompet', 'To wallet'),
                     child: PickerTile(
                       leading: KanjiBadge(glyph: toAccount?.icon ?? '財', color: Color(toAccount?.color ?? WaColors.nezumi.toARGB32()), size: 36),
-                      title: toAccount?.name ?? 'Pilih dompet tujuan',
+                      title: toAccount?.name ?? t.t('Pilih dompet tujuan', 'Choose destination'),
                       subtitle: toAccount?.currency,
                       onTap: () async {
-                        final id = await showAccountPicker(context, ref, selectedId: _toAccountId, excludeId: _accountId, title: 'Dompet Tujuan');
-                        if (id != null) setState(() {
-                          _toAccountId = id;
-                          _toAmountEdited = false;
-                          _syncToAmount();
-                        });
+                        final id = await showAccountPicker(context, ref,
+                            selectedId: _toAccountId, excludeId: _accountId, title: t.t('Dompet tujuan', 'Destination wallet'));
+                        if (id != null) {
+                          setState(() {
+                            _toAccountId = id;
+                            _toAmountEdited = false;
+                            _syncToAmount();
+                          });
+                        }
                       },
                     ),
                   ),
                   if (toAccount != null && account != null && toAccount.currency != account.currency)
                     LabeledField(
-                      label: 'Nominal diterima (${toAccount.currency}) — otomatis dari kurs, bisa diubah',
+                      label: t.t('Jumlah yang diterima (${toAccount.currency}), dihitung dari kurs dan bisa diubah',
+                          'Amount received (${toAccount.currency}), based on the rate and editable'),
                       child: TextField(
                         controller: _toAmountCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -445,7 +465,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       ),
                     ),
                   LabeledField(
-                    label: 'Biaya admin (opsional)',
+                    label: t.t('Biaya admin (opsional)', 'Transfer fee (optional)'),
                     child: TextField(
                       controller: _feeCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -456,10 +476,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
                 ] else
                   LabeledField(
-                    label: 'Kategori',
+                    label: t.category,
                     child: PickerTile(
                       leading: KanjiBadge(glyph: cat?.icon ?? '？', color: Color(cat?.color ?? WaColors.nezumi.toARGB32()), size: 36),
-                      title: categoryLabel(categories, _categoryId, empty: 'Pilih kategori'),
+                      title: categoryLabel(categories, _categoryId, empty: t.chooseCategory),
                       onTap: () async {
                         final id = await showCategoryPicker(context, type: _type, selectedId: _categoryId);
                         if (id != null) setState(() => _categoryId = id);
@@ -488,7 +508,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   controller: _note,
                   textCapitalization: TextCapitalization.sentences,
                   onTap: () => setState(() => _showPad = false),
-                  decoration: const InputDecoration(hintText: 'Catatan', prefixIcon: Icon(Icons.edit_note)),
+                  decoration: InputDecoration(hintText: t.note, prefixIcon: const Icon(Icons.edit_note)),
                 ),
                 const SizedBox(height: 10),
                 if (_type != 'transfer')
@@ -496,7 +516,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     controller: _payee,
                     onTap: () => setState(() => _showPad = false),
                     decoration: InputDecoration(
-                      hintText: _type == 'income' ? 'Dari siapa (opsional)' : 'Toko / penerima (opsional)',
+                      hintText: _type == 'income' ? t.t('Dari siapa (opsional)', 'From who (optional)') : t.t('Toko atau penerima (opsional)', 'Store or payee (optional)'),
                       prefixIcon: const Icon(Icons.storefront_outlined),
                     ),
                   ),
@@ -512,13 +532,13 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     ),
                     ActionChip(
                       avatar: Icon(_receiptPath == null ? Icons.add_a_photo_outlined : Icons.receipt_long, size: 16),
-                      label: Text(_receiptPath == null ? 'Foto struk' : 'Struk terlampir'),
+                      label: Text(_receiptPath == null ? t.t('Foto struk', 'Receipt photo') : t.t('Ada foto struk', 'Receipt attached')),
                       onPressed: _pickReceipt,
                     ),
                     if (_type == 'expense' && !_isEdit)
                       ActionChip(
                         avatar: const Icon(Icons.call_split, size: 16),
-                        label: const Text('Split bill'),
+                        label: Text(t.t('Bagi tagihan', 'Split bill')),
                         onPressed: () async {
                           final done = await Navigator.push<bool>(
                             context,
@@ -552,8 +572,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 if (_type != 'transfer')
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Jangan hitung di statistik'),
-                    subtitle: Text('Mis. titipan, reimburse kantor', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                    title: Text(t.t('Jangan masukkan ke statistik', 'Leave out of stats')),
+                    subtitle: Text(t.t('Misalnya uang titipan atau reimburse kantor', 'Like money held for someone or a work reimbursement'),
+                        style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                     value: _exclude,
                     onChanged: (v) => setState(() => _exclude = v),
                   ),
@@ -575,7 +596,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 child: FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: typeColor, foregroundColor: WaColors.sumi),
                   onPressed: _saving ? null : _save,
-                  child: Text(_isEdit ? 'Simpan Perubahan' : 'Simpan'),
+                  child: Text(_isEdit ? t.saveChanges : t.save),
                 ),
               ),
             ),

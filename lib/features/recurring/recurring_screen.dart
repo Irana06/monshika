@@ -8,12 +8,13 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 import '../../services/money_actions.dart';
 import '../common/pickers.dart';
 
-const _freqLabel = {'daily': 'hari', 'weekly': 'minggu', 'monthly': 'bulan', 'yearly': 'tahun'};
+const _frequencies = ['daily', 'weekly', 'monthly', 'yearly'];
 
 double monthlyEquivalent(Recurring r) => switch (r.frequency) {
       'daily' => r.amount * 30.44 / r.interval,
@@ -27,16 +28,17 @@ class RecurringScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Berulang · 定期'),
-          bottom: const TabBar(
+          title: Text(t.withJp('定期', t.t('Transaksi rutin', 'Recurring'))),
+          bottom: TabBar(
             indicatorColor: WaColors.accent,
             labelColor: WaColors.accent,
             unselectedLabelColor: WaColors.washiMuted,
-            tabs: [Tab(text: 'Semua jadwal'), Tab(text: 'Langganan')],
+            tabs: [Tab(text: t.t('Semua jadwal', 'All schedules')), Tab(text: t.t('Langganan', 'Subscriptions'))],
           ),
         ),
         floatingActionButton: Builder(
@@ -62,6 +64,7 @@ class _List extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final all = ref.watch(recurringsProvider).value ?? const <Recurring>[];
     final items = all.where((r) => !subscriptionsOnly || r.isSubscription).toList();
     final accounts = ref.watch(accountMapProvider);
@@ -79,8 +82,10 @@ class _List extends ConsumerWidget {
     if (items.isEmpty) {
       return EmptyState(
         kanji: subscriptionsOnly ? '定' : '暦',
-        title: subscriptionsOnly ? 'Belum ada langganan' : 'Belum ada jadwal berulang',
-        subtitle: subscriptionsOnly ? 'Netflix, Spotify, iCloud, gym — pantau total biayanya.' : 'Gaji, kos, tagihan — dicatat otomatis sesuai jadwal.',
+        title: subscriptionsOnly ? t.t('Belum ada langganan', 'No subscriptions yet') : t.t('Belum ada jadwal rutin', 'No recurring items yet'),
+        subtitle: subscriptionsOnly
+            ? t.t('Netflix, Spotify, iCloud, gym. Lihat total biayanya di sini.', 'Netflix, Spotify, iCloud, the gym. See what they add up to.')
+            : t.t('Gaji, kos, tagihan. Dicatat sendiri sesuai jadwal.', 'Salary, rent, bills. Logged for you on schedule.'),
       );
     }
 
@@ -92,25 +97,29 @@ class _List extends ConsumerWidget {
           child: Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(subscriptionsOnly ? 'Biaya langganan / bulan' : 'Keluar rutin / bulan', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
-                Text(formatMoney(monthlyOut, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.serif(size: 22, weight: FontWeight.w700, color: WaColors.expense)),
-                Text('≈ ${formatMoney(monthlyOut * 12, s.baseCurrency, compact: true, hidden: s.hideBalance)} / tahun',
+                Text(subscriptionsOnly ? t.t('Biaya langganan per bulan', 'Subscriptions per month') : t.t('Keluar rutin per bulan', 'Regular spending per month'),
                     style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                Text(formatMoney(monthlyOut, s.baseCurrency, hidden: s.hideBalance), style: AppTheme.serif(size: 22, weight: FontWeight.w700, color: WaColors.expense)),
+                Text(
+                  t.t('Sekitar ${formatMoney(monthlyOut * 12, s.baseCurrency, compact: true, hidden: s.hideBalance)} per tahun',
+                      'About ${formatMoney(monthlyOut * 12, s.baseCurrency, compact: true, hidden: s.hideBalance)} a year'),
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                ),
               ]),
             ),
             if (!subscriptionsOnly && monthlyIn > 0)
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text('Masuk rutin', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                Text(t.t('Masuk rutin', 'Regular income'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                 Text(formatMoney(monthlyIn, s.baseCurrency, compact: true, hidden: s.hideBalance),
                     style: AppTheme.serif(size: 18, weight: FontWeight.w700, color: WaColors.income)),
               ]),
           ]),
         ),
         if (pending.isNotEmpty) ...[
-          const SectionHeader(title: 'Perlu dikonfirmasi', jp: '確'),
+          SectionHeader(title: t.t('Tunggu konfirmasimu', 'Waiting for you'), jp: '確'),
           for (final r in pending) _RecurringCard(r: r, pending: true),
         ],
-        const SectionHeader(title: 'Jadwal', jp: '暦'),
+        SectionHeader(title: t.t('Jadwal', 'Schedule'), jp: '暦'),
         for (final r in items.where((r) => !pending.contains(r))) _RecurringCard(r: r),
       ],
     );
@@ -125,6 +134,7 @@ class _RecurringCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final account = ref.watch(accountMapProvider)[r.accountId];
     final hidden = ref.watch(settingsProvider).hideBalance;
     final actions = MoneyActions(ref.read(databaseProvider));
@@ -144,11 +154,11 @@ class _RecurringCard extends ConsumerWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(r.name, style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
                     Text(
-                      'Tiap ${r.interval > 1 ? '${r.interval} ' : ''}${_freqLabel[r.frequency]} · ${account?.name ?? '?'}'
-                      '${r.autoPost ? ' · otomatis' : ''}',
+                      '${t.everyN(r.interval, t.freqUnit(r.frequency))} · ${account?.name ?? '?'}'
+                      '${r.autoPost ? ' · ${t.t('otomatis', 'auto')}' : ''}',
                       style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                     ),
-                    Text(r.active ? 'Berikutnya: ${fmtRelativeDay(r.nextDate)}' : 'Dijeda',
+                    Text(r.active ? t.t('Berikutnya: ${fmtRelativeDay(r.nextDate)}', 'Next: ${fmtRelativeDay(r.nextDate)}') : t.t('Dijeda', 'Paused'),
                         style: AppTheme.sans(size: 12, color: pending ? WaColors.yamabuki : WaColors.washiMuted)),
                   ]),
                 ),
@@ -162,17 +172,17 @@ class _RecurringCard extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: () => actions.skipRecurring(r), child: const Text('Lewati')),
+                    TextButton(onPressed: () => actions.skipRecurring(r), child: Text(t.t('Lewati', 'Skip'))),
                     TextButton(
                       onPressed: () => ref.read(databaseProvider).saveRecurring(RecurringsCompanion(id: Value(r.id), active: const Value(false))),
-                      child: const Text('Jeda'),
+                      child: Text(t.t('Jeda', 'Pause')),
                     ),
                     FilledButton.tonal(
                       onPressed: () async {
                         await actions.postRecurringNow(r);
-                        if (context.mounted) await showHanko(context, label: '${r.name} tercatat');
+                        if (context.mounted) await showHanko(context, label: t.t('${r.name} dicatat', '${r.name} added'));
                       },
-                      child: const Text('Catat sekarang'),
+                      child: Text(t.t('Catat sekarang', 'Add now')),
                     ),
                   ],
                 ),
@@ -181,7 +191,7 @@ class _RecurringCard extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => ref.read(databaseProvider).saveRecurring(RecurringsCompanion(id: Value(r.id), active: const Value(true))),
-                    child: const Text('Aktifkan lagi'),
+                    child: Text(t.t('Lanjutkan', 'Resume')),
                   ),
                 ),
             ],
@@ -221,11 +231,12 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
   late int _color = widget.existing?.color ?? WaColors.ruri.toARGB32();
 
   Future<void> _save() async {
+    final t = S.of(context);
     final amount = parseAmount(_amount.text);
     if (_name.text.trim().isEmpty || amount == null || amount <= 0 || _accountId == null) {
-      return showSnack(context, 'Isi nama, nominal, dan dompet');
+      return showSnack(context, t.t('Nama, nominal, dan dompet belum lengkap', 'Fill in the name, amount, and wallet'));
     }
-    if (_type == 'transfer' && _toAccountId == null) return showSnack(context, 'Pilih dompet tujuan');
+    if (_type == 'transfer' && _toAccountId == null) return showSnack(context, t.t('Pilih dompet tujuannya', 'Pick the destination wallet'));
     await ref.read(databaseProvider).saveRecurring(RecurringsCompanion(
           id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
           name: Value(_name.text.trim()),
@@ -253,6 +264,7 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final accounts = ref.watch(accountMapProvider);
     final cats = ref.watch(categoryMapProvider);
     final acc = accounts[_accountId];
@@ -260,13 +272,17 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
     final cat = cats[_categoryId];
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Jadwal Baru' : 'Ubah Jadwal'),
+        title: Text(widget.existing == null ? t.t('Jadwal baru', 'New schedule') : t.t('Ubah jadwal', 'Edit schedule')),
         actions: [
           if (widget.existing != null)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
-                if (!await confirmDialog(context, title: 'Hapus jadwal?', message: 'Transaksi yang sudah tercatat tidak ikut terhapus.')) return;
+                if (!await confirmDialog(context,
+                    title: t.t('Hapus jadwal ini?', 'Delete this schedule?'),
+                    message: t.t('Transaksi yang sudah tercatat tetap ada.', 'Transactions already added will stay.'))) {
+                  return;
+                }
                 await ref.read(databaseProvider).deleteRecurring(widget.existing!.id);
                 if (context.mounted) Navigator.pop(context);
               },
@@ -285,15 +301,15 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
               child: KanjiBadge(glyph: _icon, color: Color(_color), size: 56),
             ),
             const SizedBox(width: 12),
-            Expanded(child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'mis. Gaji, Kos, Netflix'))),
+            Expanded(child: TextField(controller: _name, decoration: InputDecoration(hintText: t.t('Contoh: Gaji, Kos, Netflix', 'e.g. Salary, Rent, Netflix')))),
           ]),
           const SizedBox(height: 16),
           SegmentedButton<String>(
             showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 'expense', label: Text('Keluar')),
-              ButtonSegment(value: 'income', label: Text('Masuk')),
-              ButtonSegment(value: 'transfer', label: Text('Transfer')),
+            segments: [
+              ButtonSegment(value: 'expense', label: Text(t.t('Keluar', 'Out'))),
+              ButtonSegment(value: 'income', label: Text(t.t('Masuk', 'In'))),
+              ButtonSegment(value: 'transfer', label: Text(t.transfer)),
             ],
             selected: {_type},
             onSelectionChanged: (v) => setState(() {
@@ -303,7 +319,7 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
           ),
           const SizedBox(height: 16),
           LabeledField(
-            label: 'Nominal',
+            label: t.amount,
             child: TextField(
               controller: _amount,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -311,10 +327,10 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
             ),
           ),
           LabeledField(
-            label: 'Dompet',
+            label: t.wallet,
             child: PickerTile(
               leading: KanjiBadge(glyph: acc?.icon ?? '財', color: Color(acc?.color ?? WaColors.nezumi.toARGB32()), size: 34),
-              title: acc?.name ?? 'Pilih dompet',
+              title: acc?.name ?? t.chooseWallet,
               onTap: () async {
                 final id = await showAccountPicker(context, ref, selectedId: _accountId);
                 if (id != null) setState(() => _accountId = id);
@@ -323,10 +339,10 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
           ),
           if (_type == 'transfer')
             LabeledField(
-              label: 'Ke dompet',
+              label: t.t('Ke dompet', 'To wallet'),
               child: PickerTile(
                 leading: KanjiBadge(glyph: to?.icon ?? '財', color: Color(to?.color ?? WaColors.nezumi.toARGB32()), size: 34),
-                title: to?.name ?? 'Pilih dompet tujuan',
+                title: to?.name ?? t.t('Pilih dompet tujuan', 'Choose destination'),
                 onTap: () async {
                   final id = await showAccountPicker(context, ref, selectedId: _toAccountId, excludeId: _accountId);
                   if (id != null) setState(() => _toAccountId = id);
@@ -335,10 +351,10 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
             )
           else
             LabeledField(
-              label: 'Kategori',
+              label: t.category,
               child: PickerTile(
                 leading: KanjiBadge(glyph: cat?.icon ?? '？', color: Color(cat?.color ?? WaColors.nezumi.toARGB32()), size: 34),
-                title: categoryLabel(cats, _categoryId, empty: 'Pilih kategori'),
+                title: categoryLabel(cats, _categoryId, empty: t.chooseCategory),
                 onTap: () async {
                   final id = await showCategoryPicker(context, type: _type, selectedId: _categoryId);
                   if (id != null) setState(() => _categoryId = id);
@@ -346,9 +362,9 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
               ),
             ),
           LabeledField(
-            label: 'Frekuensi',
+            label: t.t('Seberapa sering', 'How often'),
             child: Row(children: [
-              Text('Setiap', style: AppTheme.sans()),
+              Text(t.t('Setiap', 'Every'), style: AppTheme.sans()),
               IconButton(onPressed: _interval > 1 ? () => setState(() => _interval--) : null, icon: const Icon(Icons.remove)),
               Text('$_interval', style: AppTheme.serif(size: 18, weight: FontWeight.w700)),
               IconButton(onPressed: () => setState(() => _interval++), icon: const Icon(Icons.add)),
@@ -356,7 +372,7 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _frequency,
-                  items: [for (final e in _freqLabel.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                  items: [for (final f in _frequencies) DropdownMenuItem(value: f, child: Text(t.freqUnit(f)))],
                   onChanged: (v) => setState(() => _frequency = v ?? 'monthly'),
                 ),
               ),
@@ -366,7 +382,7 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
             Expanded(
               child: ActionChip(
                 avatar: const Icon(Icons.event, size: 16),
-                label: Text('Berikutnya ${fmtDateShort(_next)}'),
+                label: Text(t.t('Berikutnya ${fmtDateShort(_next)}', 'Next ${fmtDateShort(_next)}')),
                 onPressed: () async {
                   final d = await showDatePicker(context: context, initialDate: _next, firstDate: DateTime(2000), lastDate: DateTime(2100));
                   if (d != null) setState(() => _next = d);
@@ -377,7 +393,7 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
             Expanded(
               child: ActionChip(
                 avatar: const Icon(Icons.event_busy, size: 16),
-                label: Text(_end == null ? 'Tanpa akhir' : 'Sampai ${fmtDateShort(_end!)}'),
+                label: Text(_end == null ? t.t('Tanpa akhir', 'No end') : t.t('Sampai ${fmtDateShort(_end!)}', 'Until ${fmtDateShort(_end!)}')),
                 onPressed: () async {
                   final d = await showDatePicker(context: context, initialDate: _end ?? _next.add(const Duration(days: 365)), firstDate: _next, lastDate: DateTime(2100));
                   setState(() => _end = d);
@@ -388,28 +404,30 @@ class _RecurringFormScreenState extends ConsumerState<RecurringFormScreen> {
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Catat otomatis saat jatuh tempo'),
-            subtitle: Text('Jika mati, muncul di "Perlu dikonfirmasi"', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            title: Text(t.t('Catat sendiri saat waktunya tiba', 'Add it automatically when due')),
+            subtitle: Text(t.t('Kalau mati, akan menunggu konfirmasimu dulu', 'When off, it waits for you to confirm'),
+                style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
             value: _auto,
             onChanged: (v) => setState(() => _auto = v),
           ),
-          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Ini langganan'), value: _sub, onChanged: (v) => setState(() => _sub = v)),
+          SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t.t('Ini langganan', "It's a subscription")), value: _sub, onChanged: (v) => setState(() => _sub = v)),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Ingatkan'),
+            title: Text(t.t('Ingatkan', 'Remind me')),
             trailing: DropdownButton<int>(
               value: _remind,
-              items: const [
-                DropdownMenuItem(value: 0, child: Text('Hari H')),
-                DropdownMenuItem(value: 1, child: Text('1 hari sebelum')),
-                DropdownMenuItem(value: 3, child: Text('3 hari sebelum')),
+              underline: const SizedBox.shrink(),
+              items: [
+                DropdownMenuItem(value: 0, child: Text(t.t('Di hari itu', 'On the day'))),
+                DropdownMenuItem(value: 1, child: Text(t.t('Sehari sebelumnya', 'A day before'))),
+                DropdownMenuItem(value: 3, child: Text(t.t('3 hari sebelumnya', '3 days before'))),
               ],
               onChanged: (v) => setState(() => _remind = v ?? 1),
             ),
           ),
-          LabeledField(label: 'Warna', child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
-          LabeledField(label: 'Catatan transaksi', child: TextField(controller: _note)),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          LabeledField(label: t.color, child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
+          LabeledField(label: t.t('Catatan di transaksi', 'Transaction note'), child: TextField(controller: _note)),
+          FilledButton(onPressed: _save, child: Text(t.save)),
         ],
       ),
     );

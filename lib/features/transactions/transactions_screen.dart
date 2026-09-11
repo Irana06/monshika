@@ -8,6 +8,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/finance.dart';
 import 'transaction_tile.dart';
@@ -77,6 +78,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     ref.watch(settingsProvider.select((s) => s.monthStartDay));
     final settings = ref.watch(settingsProvider);
     final txsAsync = ref.watch(transactionsProvider(_effective));
@@ -88,6 +90,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       baseCurrency: settings.baseCurrency,
     );
     final isRoot = widget.initialFilter == null;
+    String m(double v) => formatMoney(v, settings.baseCurrency, compact: true, hidden: settings.hideBalance);
 
     return Scaffold(
       appBar: AppBar(
@@ -96,10 +99,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ? TextField(
                 controller: _search,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: 'Cari catatan / penerima…', filled: false, border: InputBorder.none),
+                decoration: InputDecoration(hintText: t.t('Cari catatan atau penerima', 'Search notes or payees'), filled: false, border: InputBorder.none),
                 onChanged: (v) => setState(() => _filter = _filter.copyWith(search: v)),
               )
-            : Text(widget.title ?? 'Transaksi · 記録'),
+            : Text(widget.title ?? t.withJp('記録', t.t('Transaksi', 'Activity'))),
         actions: [
           IconButton(
             icon: Icon(_searching ? Icons.close : Icons.search),
@@ -135,7 +138,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         _allTime = false;
                       }),
                       child: Text(
-                        _allTime ? 'Semua waktu' : fmtRange(_range()),
+                        _allTime ? t.t('Semua waktu', 'All time') : fmtRange(_range()),
                         textAlign: TextAlign.center,
                         style: AppTheme.serif(size: 16, weight: FontWeight.w600),
                       ),
@@ -147,7 +150,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                   TextButton(
                     onPressed: () => setState(() => _allTime = !_allTime),
-                    child: Text(_allTime ? 'Per bulan' : 'Semua'),
+                    child: Text(_allTime ? t.t('Per bulan', 'By month') : t.all),
                   ),
                 ],
               ),
@@ -160,12 +163,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 if (txs.isEmpty) {
                   return EmptyState(
                     kanji: '無',
-                    title: 'Belum ada transaksi',
-                    subtitle: _filter.isFiltered ? 'Tidak ada yang cocok dengan filter.' : 'Ketuk tombol + untuk mencatat.',
+                    title: t.t('Belum ada transaksi', 'No transactions yet'),
+                    subtitle: _filter.isFiltered
+                        ? t.t('Tidak ada yang cocok dengan filter.', 'Nothing matches your filter.')
+                        : t.t('Ketuk tombol + untuk mulai mencatat.', 'Tap + to add one.'),
                   );
                 }
                 final s = f.summarize(txs);
-                final groups = groupBy(txs, (TxEntry t) => dateOnly(t.date));
+                final groups = groupBy(txs, (TxEntry x) => dateOnly(x.date));
                 final days = groups.keys.toList();
                 return CustomScrollView(
                   slivers: [
@@ -176,10 +181,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           child: Row(
                             children: [
-                              _Stat('Masuk', formatMoney(s.income, settings.baseCurrency, compact: true, hidden: settings.hideBalance), WaColors.income),
-                              _Stat('Keluar', formatMoney(s.expense, settings.baseCurrency, compact: true, hidden: settings.hideBalance), WaColors.expense),
-                              _Stat('Selisih', formatMoney(s.income - s.expense, settings.baseCurrency, compact: true, hidden: settings.hideBalance), WaColors.washi),
-                              _Stat('Jumlah', '${txs.length}', WaColors.washiMuted),
+                              _Stat(t.t('Masuk', 'In'), m(s.income), WaColors.income),
+                              _Stat(t.t('Keluar', 'Out'), m(s.expense), WaColors.expense),
+                              _Stat(t.t('Selisih', 'Net'), m(s.income - s.expense), WaColors.washi),
+                              _Stat(t.t('Jumlah', 'Count'), '${txs.length}', WaColors.washiMuted),
                             ],
                           ),
                         ),
@@ -200,7 +205,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               currency: settings.baseCurrency,
                               hidden: settings.hideBalance,
                             ),
-                            for (final t in list) _DismissibleTx(tx: t),
+                            for (final x in list) _DismissibleTx(tx: x),
                           ],
                         );
                       },
@@ -243,6 +248,7 @@ class _DismissibleTx extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     return Dismissible(
       key: ValueKey('tx-${tx.id}'),
       direction: DismissDirection.endToStart,
@@ -254,15 +260,18 @@ class _DismissibleTx extends ConsumerWidget {
       ),
       confirmDismiss: (_) async => tx.debtId == null && tx.goalId == null
           ? true
-          : confirmDialog(context,
-              title: 'Hapus transaksi terkait?',
-              message: 'Transaksi ini terhubung ke utang/target. Riwayat pembayarannya juga akan terhapus.'),
+          : confirmDialog(
+              context,
+              title: t.t('Hapus transaksi ini?', 'Delete this transaction?'),
+              message: t.t('Transaksi ini terhubung ke utang atau target. Catatan pembayarannya juga ikut terhapus.',
+                  "This one is linked to a debt or goal. Its payment record will be deleted too."),
+            ),
       onDismissed: (_) async {
         final db = ref.read(databaseProvider);
         final tags = await db.getTagIdsFor(tx.id);
         await db.deleteTransaction(tx.id);
         if (!context.mounted) return;
-        showSnack(context, 'Transaksi dihapus', actionLabel: 'Urungkan', onAction: () {
+        showSnack(context, t.t('Transaksi dihapus', 'Transaction deleted'), actionLabel: t.t('Batalkan', 'Undo'), onAction: () {
           db.saveTransaction(tx.toCompanion(true), tagIds: tags);
         });
       },
@@ -290,9 +299,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
     final cats = (ref.watch(categoriesProvider).value ?? const <TxCategory>[])
-        .where((c) => c.parentId == null && (_type == null || c.type == _type) && !c.archived)
+        .where((c) => c.parentId == null && (_type == null || c.type == _type) && !c.archived && !c.isSystem)
         .toList();
     final tags = ref.watch(tagsProvider).value ?? const <Tag>[];
 
@@ -318,14 +328,18 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 Text('Filter', style: AppTheme.serif(size: 20, weight: FontWeight.w600)),
                 const SizedBox(height: 16),
                 section(
-                  'Tipe',
+                  t.t('Jenis', 'Type'),
                   Wrap(spacing: 8, children: [
-                    for (final t in const [(null, 'Semua'), ('expense', 'Pengeluaran'), ('income', 'Pemasukan'), ('transfer', 'Transfer')])
-                      ChoiceChip(label: Text(t.$2), selected: _type == t.$1, onSelected: (_) => setState(() => _type = t.$1)),
+                    for (final type in const [null, 'expense', 'income', 'transfer'])
+                      ChoiceChip(
+                        label: Text(type == null ? t.all : t.typeLabel(type)),
+                        selected: _type == type,
+                        onSelected: (_) => setState(() => _type = type),
+                      ),
                   ]),
                 ),
                 section(
-                  'Dompet',
+                  t.wallet,
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     for (final a in accounts)
                       FilterChip(
@@ -337,11 +351,11 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 ),
                 if (_type != 'transfer')
                   section(
-                    'Kategori',
+                    t.category,
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       for (final c in cats)
                         FilterChip(
-                          avatar: Text(c.icon, style: AppTheme.serif(size: 13, color: Color(c.color))),
+                          avatar: GlyphIcon(c.icon, color: Color(c.color), size: 15),
                           label: Text(c.name),
                           selected: _categories.contains(c.id),
                           onSelected: (v) => setState(() => v ? _categories.add(c.id) : _categories.remove(c.id)),
@@ -352,20 +366,20 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   section(
                     'Tag',
                     Wrap(spacing: 8, runSpacing: 8, children: [
-                      for (final t in tags)
+                      for (final tag in tags)
                         FilterChip(
-                          label: Text('#${t.name}'),
-                          selected: _tags.contains(t.id),
-                          onSelected: (v) => setState(() => v ? _tags.add(t.id) : _tags.remove(t.id)),
+                          label: Text('#${tag.name}'),
+                          selected: _tags.contains(tag.id),
+                          onSelected: (v) => setState(() => v ? _tags.add(tag.id) : _tags.remove(tag.id)),
                         ),
                     ]),
                   ),
                 section(
-                  'Rentang nominal',
+                  t.t('Nominal', 'Amount'),
                   Row(children: [
-                    Expanded(child: TextField(controller: _min, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'Min'))),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('–')),
-                    Expanded(child: TextField(controller: _max, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'Maks'))),
+                    Expanded(child: TextField(controller: _min, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: t.t('Paling kecil', 'Min')))),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(t.t('sampai', 'to'))),
+                    Expanded(child: TextField(controller: _max, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: t.t('Paling besar', 'Max')))),
                   ]),
                 ),
               ],
@@ -379,7 +393,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, const TxFilter()),
-                    child: const Text('Reset'),
+                    child: Text(t.t('Reset', 'Reset')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -397,7 +411,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         maxAmount: parseAmount(_max.text),
                       ),
                     ),
-                    child: const Text('Terapkan'),
+                    child: Text(t.t('Terapkan', 'Apply')),
                   ),
                 ),
               ]),

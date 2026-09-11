@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../data/database/database.dart';
+import '../l10n/strings.dart';
 import 'backup_service.dart';
 import 'drive_service.dart';
 import 'home_widget_sync.dart';
@@ -17,6 +19,15 @@ import 'update_service.dart';
 
 const kPeriodicTask = 'monshika-periodic';
 
+/// Engine latar belakang tidak lewat main(), jadi bahasa dan format tanggal disiapkan di sini.
+Future<void> _prepareStrings() async {
+  await initializeDateFormatting();
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.reload();
+  S.current = S.fromPrefs(prefs);
+  Intl.defaultLocale = S.current.dateLocale;
+}
+
 // Catatan: engine latar belakang tidak punya surface. Merender widget Flutter
 // menjadi gambar (grafik widget) di sini membuat raster thread crash (SIGSEGV)
 // pada sebagian GPU, jadi semua refresh di latar belakang memakai renderChart: false.
@@ -27,7 +38,7 @@ const kPeriodicTask = 'monshika-periodic';
 @pragma('vm:entry-point')
 Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('id_ID');
+  await _prepareStrings();
   final db = AppDatabase();
   try {
     String? lastAction;
@@ -36,7 +47,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
       final preset = (await db.getPresets()).where((p) => p.id == id).firstOrNull;
       if (preset != null) {
         await MoneyActions(db).recordPreset(preset);
-        lastAction = '✓ ${preset.name} tercatat';
+        lastAction = S.current.t('✓ ${preset.name} dicatat', '✓ ${preset.name} added');
       }
     }
     await HomeWidgetSync.refresh(db, renderChart: false, lastAction: lastAction);
@@ -49,7 +60,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
 void workmanagerDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     WidgetsFlutterBinding.ensureInitialized();
-    await initializeDateFormatting('id_ID');
+    await _prepareStrings();
     final db = AppDatabase();
     try {
       await MoneyActions(db).processDueRecurrings();

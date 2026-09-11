@@ -2,20 +2,20 @@
 <resources>
     <string name="app_name">Monshika</string>
 
-    <string name="widget_quick_add">Monshika · Catat Cepat</string>
-    <string name="widget_quick_add_desc">Catat pengeluaran/pemasukan tanpa membuka aplikasi</string>
-    <string name="widget_summary">Monshika · Ringkasan</string>
-    <string name="widget_summary_desc">Total saldo, arus kas bulan ini, dan tombol cepat</string>
-    <string name="widget_safe_spend">Monshika · Sisa Aman</string>
-    <string name="widget_safe_spend_desc">Jatah belanja yang tersisa hari ini</string>
-    <string name="widget_chart">Monshika · Grafik</string>
-    <string name="widget_chart_desc">Grafik pemasukan &amp; pengeluaran 7 hari</string>
-    <string name="widget_preset">Monshika · Preset</string>
-    <string name="widget_preset_desc">Catat transaksi favorit sekali tap</string>
+    <string name="widget_quick_add">Monshika · Quick add</string>
+    <string name="widget_quick_add_desc">Log spending or income without opening the app</string>
+    <string name="widget_summary">Monshika · Summary</string>
+    <string name="widget_summary_desc">Total balance, this month\'s cash flow, and quick buttons</string>
+    <string name="widget_safe_spend">Monshika · Safe to spend</string>
+    <string name="widget_safe_spend_desc">How much you can still spend today</string>
+    <string name="widget_chart">Monshika · Chart</string>
+    <string name="widget_chart_desc">Money in and out over 7 days</string>
+    <string name="widget_preset">Monshika · One tap</string>
+    <string name="widget_preset_desc">Log your favorite transactions with one tap</string>
     <string name="widget_budget">Monshika · Budget</string>
-    <string name="widget_budget_desc">Pemakaian budget teratas</string>
-    <string name="widget_upcoming">Monshika · Tagihan</string>
-    <string name="widget_upcoming_desc">Tagihan, cicilan &amp; jatuh tempo 14 hari</string>
-    <string name="widget_goal">Monshika · Target</string>
-    <string name="widget_goal_desc">Progres target tabungan</string>
+    <string name="widget_budget_desc">Your most used budgets</string>
+    <string name="widget_upcoming">Monshika · Bills</string>
+    <string name="widget_upcoming_desc">Bills, installments, and due dates in the next 14 days</string>
+    <string name="widget_goal">Monshika · Goal</string>
+    <string name="widget_goal_desc">Progress on a savings goal</string>
 </resources>

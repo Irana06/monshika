@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:intl/intl.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/lock/lock_screen.dart';
@@ -13,6 +14,7 @@ import 'features/shell/app_shell.dart';
 import 'features/transactions/quick_input_sheet.dart';
 import 'features/transactions/transaction_form_screen.dart';
 import 'features/update/update_ui.dart';
+import 'l10n/strings.dart';
 import 'providers/providers.dart';
 import 'services/app_services.dart';
 import 'services/home_widget_sync.dart';
@@ -47,10 +49,8 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
       _checkForUpdate();
     });
 
-    // Setiap data berubah → perbarui widget beranda (di-debounce).
-    _dbChanges = db
-        .tableUpdates(TableUpdateQuery.onAllTables(db.allTables))
-        .listen((_) {
+    // Setiap data berubah, perbarui widget beranda (dengan jeda singkat).
+    _dbChanges = db.tableUpdates(TableUpdateQuery.onAllTables(db.allTables)).listen((_) {
       _widgetDebounce?.cancel();
       _widgetDebounce = Timer(const Duration(milliseconds: 1500), () {
         if (isMobile) HomeWidgetSync.refresh(db);
@@ -72,7 +72,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
     super.dispose();
   }
 
-  /// Cek rilis baru di GitHub; tampilkan dialog kecuali versi itu sudah "Nanti saja".
+  /// Cek rilis baru di GitHub; tampilkan dialog kecuali versi itu sudah ditunda.
   Future<void> _checkForUpdate({bool force = false}) async {
     if (!isMobile) return;
     final release = await ref.read(updateProvider.notifier).check(force: force);
@@ -94,7 +94,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
       _pausedAt ??= DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
       final db = ref.read(databaseProvider);
-      // Widget / dialog quick-add mungkin menulis data dari engine lain.
+      // Widget atau dialog catat cepat mungkin menulis data dari engine lain.
       db.refreshAllStreams();
       ref.read(settingsProvider.notifier).reload();
       if (settings.lockEnabled &&
@@ -128,6 +128,9 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final s = settings.strings;
+    S.current = s;
+    Intl.defaultLocale = s.dateLocale;
 
     Widget home;
     if (!settings.onboardingDone) {
@@ -148,13 +151,14 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
       theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      locale: const Locale('id'),
+      locale: s.locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => SScope(s: s, child: child ?? const SizedBox.shrink()),
       home: AnimatedSwitcher(duration: const Duration(milliseconds: 350), child: home),
     );
   }

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Kalkulator nominal sederhana: angka, desimal, 000, + − × ÷.
+/// Kalkulator nominal sederhana: angka, desimal, 000, + - × ÷.
 class CalcController extends ChangeNotifier {
   CalcController({double? initial}) {
     if (initial != null && initial > 0) {
@@ -14,7 +14,7 @@ class CalcController extends ChangeNotifier {
 
   String _expr = '';
 
-  String get expression => _expr.replaceAll('*', '×').replaceAll('/', '÷').replaceAll('-', '−');
+  String get expression => _expr.replaceAll('*', '×').replaceAll('/', '÷');
 
   bool get hasOperator => RegExp(r'[+\-*/]').hasMatch(_expr);
 
@@ -72,7 +72,7 @@ class CalcController extends ChangeNotifier {
         i++;
       }
     }
-    // Tahap 2: + dan −
+    // Tahap 2: + dan -
     var result = double.tryParse(stack.first) ?? 0;
     for (var j = 1; j + 1 < stack.length; j += 2) {
       final b = double.tryParse(stack[j + 1]) ?? 0;
@@ -130,7 +130,7 @@ class CalcPad extends StatelessWidget {
   }
 
   Widget _key(String k, {int flex = 1, Color color = WaColors.washi}) {
-    final label = switch (k) { '*' => '×', '/' => '÷', '-' => '−', _ => k };
+    final label = switch (k) { '*' => '×', '/' => '÷', _ => k };
     return Expanded(
       flex: flex,
       child: SizedBox(

@@ -10,6 +10,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 import '../../services/finance.dart';
@@ -50,20 +51,19 @@ BudgetStatus budgetStatus(Budget b, Finance f, List<TxEntry> txs, AppSettings s,
   return BudgetStatus(range: range, limit: b.amount + carried, spent: spent, carried: carried);
 }
 
-const _periodLabel = {'weekly': 'Mingguan', 'monthly': 'Bulanan', 'yearly': 'Tahunan'};
-
 class BudgetsScreen extends ConsumerWidget {
   const BudgetsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final budgets = ref.watch(budgetsProvider).value ?? const <Budget>[];
     final f = ref.watch(financeProvider);
     final s = ref.watch(settingsProvider);
     final txs = ref.watch(yearTransactionsProvider).value ?? const <TxEntry>[];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Budget · 予算')),
+      appBar: AppBar(title: Text(t.withJp('予算', 'Budget'))),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add-budget',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetFormScreen())),
@@ -72,9 +72,9 @@ class BudgetsScreen extends ConsumerWidget {
       body: budgets.isEmpty
           ? EmptyState(
               kanji: '算',
-              title: 'Belum ada budget',
-              subtitle: 'Batasi pengeluaran per kategori, per minggu/bulan/tahun.',
-              action: 'Buat budget',
+              title: t.t('Belum ada budget', 'No budgets yet'),
+              subtitle: t.t('Pasang batas belanja per kategori, mingguan, bulanan, atau tahunan.', 'Set spending limits by category, per week, month, or year.'),
+              action: t.t('Buat budget', 'Create a budget'),
               onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetFormScreen())),
             )
           : ListView.separated(
@@ -84,6 +84,7 @@ class BudgetsScreen extends ConsumerWidget {
               itemBuilder: (_, i) {
                 final b = budgets[i];
                 final st = budgetStatus(b, f, txs, s);
+                String m(double v, {bool c = false}) => formatMoney(v, b.currency, compact: c, hidden: s.hideBalance);
                 return Opacity(
                   opacity: b.active ? 1 : 0.5,
                   child: WaCard(
@@ -93,7 +94,7 @@ class BudgetsScreen extends ConsumerWidget {
                         EnsoRing(
                           progress: st.ratio,
                           size: 70,
-                          child: Text(b.icon, style: AppTheme.serif(size: 22, weight: FontWeight.w700, color: Color(b.color))),
+                          child: GlyphIcon(b.icon, color: Color(b.color), size: 23),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -105,16 +106,13 @@ class BudgetsScreen extends ConsumerWidget {
                                 Text('${(st.ratio * 100).round()}%',
                                     style: AppTheme.sans(size: 13, weight: FontWeight.w700, color: st.ratio >= 1 ? WaColors.expense : WaColors.accent)),
                               ]),
-                              Text('${_periodLabel[b.period]} · ${fmtRange(st.range)}', style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
+                              Text('${t.periodLabel(b.period)} · ${fmtRange(st.range)}', style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
                               const SizedBox(height: 8),
-                              Text(
-                                '${formatMoney(st.spent, b.currency, hidden: s.hideBalance)} / ${formatMoney(st.limit, b.currency, hidden: s.hideBalance)}',
-                                style: AppTheme.sans(size: 13, weight: FontWeight.w600),
-                              ),
+                              Text('${m(st.spent)} / ${m(st.limit)}', style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
                               Text(
                                 st.left >= 0
-                                    ? 'Sisa ${formatMoney(st.left, b.currency, compact: true, hidden: s.hideBalance)} · ${formatMoney(st.perDayLeft, b.currency, compact: true, hidden: s.hideBalance)}/hari'
-                                    : 'Lewat ${formatMoney(-st.left, b.currency, compact: true, hidden: s.hideBalance)}',
+                                    ? t.t('Sisa ${m(st.left, c: true)} · ${m(st.perDayLeft, c: true)}/hari', '${m(st.left, c: true)} left · ${m(st.perDayLeft, c: true)}/day')
+                                    : t.t('Lebih ${m(-st.left, c: true)}', '${m(-st.left, c: true)} over'),
                                 style: AppTheme.sans(size: 12, color: st.left >= 0 ? WaColors.washiMuted : WaColors.expense),
                               ),
                             ],
@@ -137,8 +135,9 @@ class BudgetDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final b = (ref.watch(budgetsProvider).value ?? const <Budget>[]).where((x) => x.id == budgetId).firstOrNull;
-    if (b == null) return const Scaffold(body: Center(child: Text('Budget tidak ditemukan')));
+    if (b == null) return Scaffold(body: Center(child: Text(t.t('Budget tidak ditemukan', 'Budget not found'))));
     final f = ref.watch(financeProvider);
     final s = ref.watch(settingsProvider);
     final cats = ref.watch(categoryMapProvider);
@@ -146,7 +145,7 @@ class BudgetDetailScreen extends ConsumerWidget {
     final st = budgetStatus(b, f, txs, s);
     final ids = b.categoryIds.isEmpty ? null : f.withChildren(b.categoryIds.split(',').map(int.tryParse).whereType<int>());
     final inPeriod = txs
-        .where((t) => t.type == 'expense' && !t.excludeFromStats && st.range.contains(t.date) && (ids == null || ids.contains(t.categoryId)))
+        .where((x) => x.type == 'expense' && !x.excludeFromStats && st.range.contains(x.date) && (ids == null || ids.contains(x.categoryId)))
         .toList();
     final history = [for (var i = 5; i >= 0; i--) budgetStatus(b, f, txs, s, offset: -i)];
     final maxH = [...history.map((h) => h.spent), ...history.map((h) => h.limit), 1.0].reduce(math.max);
@@ -171,7 +170,7 @@ class BudgetDetailScreen extends ConsumerWidget {
               size: 180,
               stroke: 13,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(b.icon, style: AppTheme.serif(size: 30, color: Color(b.color), weight: FontWeight.w700)),
+                GlyphIcon(b.icon, color: Color(b.color), size: 32),
                 Text('${(st.ratio * 100).round()}%', style: AppTheme.serif(size: 26, weight: FontWeight.w700)),
               ]),
             ),
@@ -182,19 +181,23 @@ class BudgetDetailScreen extends ConsumerWidget {
           WaCard(
             child: Column(
               children: [
-                _row('Batas', m(st.limit)),
-                if (st.carried > 0) _row('  termasuk sisa periode lalu', m(st.carried)),
-                _row('Terpakai', m(st.spent)),
-                _row(st.left >= 0 ? 'Sisa' : 'Terlampaui', m(st.left.abs()), color: st.left >= 0 ? WaColors.income : WaColors.expense),
-                _row('Jatah per hari (${st.daysLeft} hari lagi)', m(st.perDayLeft)),
-                _row('Proyeksi akhir periode', m(st.projection), color: st.projection > st.limit ? WaColors.expense : WaColors.washi),
-                _row('Kategori', b.categoryIds.isEmpty
-                    ? 'Semua pengeluaran'
-                    : b.categoryIds.split(',').map((e) => cats[int.tryParse(e)]?.name).whereType<String>().join(', ')),
+                _row(t.t('Batas', 'Limit'), m(st.limit)),
+                if (st.carried > 0) _row(t.t('   termasuk sisa periode lalu', '   includes last period leftover'), m(st.carried)),
+                _row(t.t('Terpakai', 'Spent'), m(st.spent)),
+                _row(st.left >= 0 ? t.t('Sisa', 'Left') : t.t('Kelebihan', 'Over by'), m(st.left.abs()), color: st.left >= 0 ? WaColors.income : WaColors.expense),
+                _row(t.t('Jatah per hari (${st.daysLeft} hari lagi)', 'Per day (${st.daysLeft} days left)'), m(st.perDayLeft)),
+                _row(t.t('Perkiraan di akhir periode', 'Projected by end of period'), m(st.projection),
+                    color: st.projection > st.limit ? WaColors.expense : WaColors.washi),
+                _row(
+                  t.categories,
+                  b.categoryIds.isEmpty
+                      ? t.t('Semua pengeluaran', 'All spending')
+                      : b.categoryIds.split(',').map((e) => cats[int.tryParse(e)]?.name).whereType<String>().join(', '),
+                ),
               ],
             ),
           ),
-          const SectionHeader(title: '6 periode terakhir', jp: '歴'),
+          SectionHeader(title: t.t('6 periode terakhir', 'Last 6 periods'), jp: '歴'),
           WaCard(
             child: Column(
               children: [
@@ -204,7 +207,7 @@ class BudgetDetailScreen extends ConsumerWidget {
                     child: Row(children: [
                       SizedBox(
                         width: 70,
-                        child: Text(b.period == 'monthly' ? fmtMonthYear(h.range.start).split(' ').first : fmtDateShort(h.range.start),
+                        child: Text(b.period == 'monthly' ? monthShort(h.range.start) : fmtDateShort(h.range.start),
                             style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                       ),
                       Expanded(child: InkBar(value: h.spent / maxH, height: 8, color: h.spent > h.limit ? WaColors.expense : WaColors.accent)),
@@ -215,13 +218,13 @@ class BudgetDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SectionHeader(title: 'Transaksi periode ini', jp: '記'),
+          SectionHeader(title: t.t('Transaksi periode ini', 'This period'), jp: '記'),
           if (inPeriod.isEmpty)
-            const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('Belum ada pengeluaran')))
+            Padding(padding: const EdgeInsets.all(20), child: Center(child: Text(t.t('Belum ada pengeluaran', 'No spending yet'))))
           else
             WaCard(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(children: [for (final t in inPeriod) TransactionTile(tx: t, showDate: true)]),
+              child: Column(children: [for (final x in inPeriod) TransactionTile(tx: x, showDate: true)]),
             ),
         ],
       ),
@@ -259,8 +262,11 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
   late bool _active = widget.existing?.active ?? true;
 
   Future<void> _save() async {
+    final t = S.of(context);
     final amount = parseAmount(_amount.text);
-    if (_name.text.trim().isEmpty || amount == null || amount <= 0) return showSnack(context, 'Isi nama dan nominal budget');
+    if (_name.text.trim().isEmpty || amount == null || amount <= 0) {
+      return showSnack(context, t.t('Nama dan nominal budget belum diisi', 'Fill in the budget name and amount'));
+    }
     await ref.read(databaseProvider).saveBudget(BudgetsCompanion(
           id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
           name: Value(_name.text.trim()),
@@ -279,18 +285,23 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final roots = (ref.watch(categoriesProvider).value ?? const <TxCategory>[])
         .where((c) => c.type == 'expense' && c.parentId == null && !c.isSystem)
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Budget Baru' : 'Ubah Budget'),
+        title: Text(widget.existing == null ? t.t('Budget baru', 'New budget') : t.t('Ubah budget', 'Edit budget')),
         actions: [
           if (widget.existing != null)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
-                if (!await confirmDialog(context, title: 'Hapus budget?', message: 'Transaksi tidak ikut terhapus.')) return;
+                if (!await confirmDialog(context,
+                    title: t.t('Hapus budget ini?', 'Delete this budget?'),
+                    message: t.t('Transaksinya tetap aman, tidak ikut terhapus.', "Your transactions won't be touched."))) {
+                  return;
+                }
                 await ref.read(databaseProvider).deleteBudget(widget.existing!.id);
                 if (context.mounted) Navigator.of(context)..pop()..maybePop();
               },
@@ -309,11 +320,11 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
               child: KanjiBadge(glyph: _icon, color: Color(_color), size: 56),
             ),
             const SizedBox(width: 12),
-            Expanded(child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'Nama budget, mis. Makan bulanan'))),
+            Expanded(child: TextField(controller: _name, decoration: InputDecoration(hintText: t.t('Nama budget, contoh: Makan bulanan', 'Budget name, e.g. Monthly food')))),
           ]),
           const SizedBox(height: 16),
           LabeledField(
-            label: 'Batas',
+            label: t.t('Batas', 'Limit'),
             child: Row(children: [
               Expanded(
                 child: TextField(
@@ -333,23 +344,23 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
             ]),
           ),
           LabeledField(
-            label: 'Periode',
+            label: t.t('Periode', 'Period'),
             child: SegmentedButton<String>(
               showSelectedIcon: false,
-              segments: [for (final e in _periodLabel.entries) ButtonSegment(value: e.key, label: Text(e.value))],
+              segments: [for (final p in const ['weekly', 'monthly', 'yearly']) ButtonSegment(value: p, label: Text(t.periodLabel(p)))],
               selected: {_period},
               onSelectionChanged: (v) => setState(() => _period = v.first),
             ),
           ),
           LabeledField(
-            label: 'Kategori (kosongkan = semua pengeluaran)',
+            label: t.t('Kategori (biarkan kosong untuk semua pengeluaran)', 'Categories (leave empty for all spending)'),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final c in roots)
                   FilterChip(
-                    avatar: Text(c.icon, style: AppTheme.serif(size: 13, color: Color(c.color))),
+                    avatar: GlyphIcon(c.icon, color: Color(c.color), size: 15),
                     label: Text(c.name),
                     selected: _cats.contains(c.id),
                     onSelected: (v) => setState(() => v ? _cats.add(c.id) : _cats.remove(c.id)),
@@ -358,20 +369,21 @@ class _BudgetFormScreenState extends ConsumerState<BudgetFormScreen> {
             ),
           ),
           LabeledField(
-            label: 'Peringatan saat terpakai ${_alert.round()}%',
+            label: t.t('Kasih peringatan saat terpakai ${_alert.round()}%', 'Warn me at ${_alert.round()}% used'),
             child: Slider(value: _alert, min: 50, max: 100, divisions: 10, onChanged: (v) => setState(() => _alert = v)),
           ),
-          LabeledField(label: 'Warna', child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
+          LabeledField(label: t.color, child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Rollover sisa budget'),
-            subtitle: Text('Sisa periode lalu ditambahkan ke periode berikutnya', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            title: Text(t.t('Bawa sisa ke periode berikutnya', 'Carry leftover to next period')),
+            subtitle: Text(t.t('Sisa budget yang tidak terpakai ditambahkan ke periode berikutnya', 'Unused budget gets added to the next period'),
+                style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
             value: _rollover,
             onChanged: (v) => setState(() => _rollover = v),
           ),
-          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (v) => setState(() => _active = v)),
+          SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t.active), value: _active, onChanged: (v) => setState(() => _active = v)),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _save, child: Text(t.save)),
         ],
       ),
     );

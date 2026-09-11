@@ -6,10 +6,12 @@ import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/constants/kanji_icons.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/dates.dart';
 import '../core/utils/money.dart';
 import '../data/database/database.dart';
+import '../l10n/strings.dart';
 import '../providers/providers.dart' show ratesFromRows;
 import 'finance.dart';
 
@@ -41,6 +43,11 @@ abstract final class HomeWidgetSync {
   static Future<void> _refresh(AppDatabase db, {required bool renderChart, String? lastAction}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
+    final s = S.fromPrefs(prefs);
+    S.current = s;
+    Intl.defaultLocale = s.dateLocale;
+    // Glyph kanji hanya dikirim saat gaya Jepang aktif. Emoji buatan pengguna tetap dikirim.
+    String glyph(String g) => s.jp || iconForGlyph(g) == null ? g : '';
     final base = prefs.getString('baseCurrency') ?? 'IDR';
     final hidden = prefs.getBool('hideOnWidget') ?? false;
     final startDay = prefs.getInt('monthStartDay') ?? 1;
@@ -100,8 +107,36 @@ abstract final class HomeWidgetSync {
     await HomeWidget.saveWidgetData<bool>('safe_over', safe.todayLeft < 0);
     await HomeWidget.saveWidgetData<int>('safe_ratio', (safe.usedRatio * 100).round());
     await HomeWidget.saveWidgetData<String>('today_spent', m(safe.todaySpent));
-    await HomeWidget.saveWidgetData<String>('updated', 'Diperbarui ${DateFormat('HH:mm').format(now)}');
+    await HomeWidget.saveWidgetData<String>('updated', s.t('Diperbarui ${DateFormat('HH:mm').format(now)}', 'Updated ${DateFormat('HH:mm').format(now)}'));
     if (lastAction != null) await HomeWidget.saveWidgetData<String>('last_action', lastAction);
+
+    // Teks label widget, sudah sesuai bahasa dan gaya Jepang.
+    final labels = <String, String>{
+      'txt_open_app': s.t('Buka Monshika', 'Open Monshika'),
+      'txt_summary_title': s.jp ? '総資産 · Monshika' : s.t('Total saldo', 'Total balance'),
+      'txt_income': '${s.jp ? '入' : s.t('Masuk', 'In')} ${m(summary.income, compact: true)}',
+      'txt_expense': '${s.jp ? '出' : s.t('Keluar', 'Out')} ${m(summary.expense, compact: true)}',
+      'txt_safe_line': '${s.jp ? '今日 ' : ''}${s.t('Aman dipakai', 'Safe to spend')} ${m(safe.todayLeft)}',
+      'txt_btn_expense': s.jp ? '- 出' : s.t('- Keluar', '- Out'),
+      'txt_btn_income': s.jp ? '+ 入' : s.t('+ Masuk', '+ In'),
+      'txt_btn_quick': s.jp ? '速' : '⚡',
+      'txt_safe_title': s.jp ? '今日 · ${s.t('aman dipakai', 'safe to spend')}' : s.t('Aman dipakai hari ini', 'Safe to spend today'),
+      'txt_per_day': s.t('Jatah ${m(math.max(0, safe.perDay))}/hari', '${m(math.max(0, safe.perDay))}/day'),
+      'txt_spent': s.t('Terpakai ${m(safe.todaySpent)}', 'Spent ${m(safe.todaySpent)}'),
+      'txt_chart_title': s.jp ? '図 ${s.t('7 hari', '7 days')}' : s.t('7 hari terakhir', 'Last 7 days'),
+      'txt_chart_empty': s.t('Buka Monshika untuk memuat grafik', 'Open Monshika to load the chart'),
+      'txt_preset_empty': s.withJp('札', s.t('Buat preset di Monshika', 'Add presets in Monshika')),
+      'txt_budget_title': s.withJp('算', 'Budget'),
+      'txt_budget_empty': s.t('Belum ada budget', 'No budgets yet'),
+      'txt_upcoming_title': s.withJp('予', s.t('Tagihan terdekat', 'Upcoming bills')),
+      'txt_upcoming_empty': s.t('Tidak ada tagihan', 'No bills coming up'),
+      'txt_goal_icon': s.jp ? '夢' : '🎯',
+      'txt_goal_empty': s.t('Belum ada target', 'No goal yet'),
+      'txt_goal_hint': s.t('Buat di Monshika', 'Create one in Monshika'),
+    };
+    for (final e in labels.entries) {
+      await HomeWidget.saveWidgetData<String>(e.key, e.value);
+    }
 
     // Preset sekali tap
     final presets = (await db.getPresets()).where((p) => p.showInWidget).take(4).map((p) => {
@@ -119,12 +154,13 @@ abstract final class HomeWidgetSync {
       final r = periodRange(b.period, now, monthStartDay: startDay);
       final bt = b.period == 'monthly' ? txs : await db.getTransactions(from: r.start, to: r.end, type: 'expense');
       final spent = f.budgetSpent(b, bt, r);
+      final left = formatMoney(b.amount - spent, b.currency, compact: true, hidden: hidden);
       budgetItems.add({
         'name': b.name,
-        'icon': b.icon,
+        'icon': glyph(b.icon),
         'color': b.color,
         'pct': b.amount <= 0 ? 0 : (spent / b.amount * 100).round(),
-        'left': formatMoney(b.amount - spent, b.currency, compact: true, hidden: hidden),
+        'left': s.t('Sisa $left', '$left left'),
       });
     }
     budgetItems.sort((a, b) => (b['pct'] as int).compareTo(a['pct'] as int));
@@ -143,7 +179,7 @@ abstract final class HomeWidgetSync {
           'title': b.title,
           'date': fmtRelativeDay(b.date).startsWith(RegExp(r'[A-Z][a-z]+,')) ? fmtDateShort(b.date) : fmtRelativeDay(b.date),
           'amount': formatMoney(b.amount, b.currency, compact: true, hidden: hidden),
-          'icon': b.icon,
+          'icon': glyph(b.icon),
           'income': b.isIncome,
         });
     await HomeWidget.saveWidgetData<String>('upcoming', jsonEncode(soon.toList()));
@@ -162,7 +198,7 @@ abstract final class HomeWidgetSync {
           ? ''
           : jsonEncode({
               'name': goal.name,
-              'icon': goal.icon,
+              'icon': glyph(goal.icon),
               'color': goal.color,
               'pct': goal.targetAmount <= 0 ? 0 : ((saved[goal.id] ?? 0) / goal.targetAmount * 100).clamp(0, 100).round(),
               'saved': formatMoney(saved[goal.id] ?? 0, goal.currency, compact: true, hidden: hidden),
@@ -182,11 +218,12 @@ abstract final class HomeWidgetSync {
           WidgetChartImage(
             expenses: expenses,
             incomes: incomes,
-            labels: [for (var i = 0; i < 7; i++) kJpWeekdays[week.start.add(Duration(days: i)).weekday - 1]],
+            labels: [for (var i = 0; i < 7; i++) weekdayShort(week.start.add(Duration(days: i)).weekday)],
+            emptyText: s.t('Belum ada\npengeluaran', 'No spending\nyet'),
             breakdown: f
                 .breakdown(txs, 'expense')
                 .take(4)
-                .map((e) => (categories[e.key]?.name ?? 'Lainnya', e.value, Color(categories[e.key]?.color ?? 0xFF8C8C96)))
+                .map((e) => (categories[e.key]?.name ?? s.t('Lainnya', 'Other'), e.value, Color(categories[e.key]?.color ?? 0xFF8C8C96)))
                 .toList(),
           ),
           key: 'chart_image',
@@ -211,8 +248,10 @@ class WidgetChartImage extends StatelessWidget {
     required this.incomes,
     required this.labels,
     required this.breakdown,
+    this.emptyText = '',
   });
 
+  final String emptyText;
   final List<double> expenses;
   final List<double> incomes;
   final List<String> labels;
@@ -275,8 +314,8 @@ class WidgetChartImage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (breakdown.isEmpty)
-                    const Text('Belum ada\npengeluaran',
-                        style: TextStyle(fontSize: 12, color: WaColors.washiMuted, decoration: TextDecoration.none)),
+                    Text(emptyText,
+                        style: const TextStyle(fontSize: 12, color: WaColors.washiMuted, decoration: TextDecoration.none)),
                   for (final b in breakdown)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),

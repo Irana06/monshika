@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../l10n/strings.dart';
 import '../constants/kanji_icons.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -38,6 +39,8 @@ class WaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final br = BorderRadius.circular(radius);
+    // Pola ombak hanya bagian dari gaya Jepang.
+    final showPattern = pattern && S.of(context).jp;
     return Material(
       color: Colors.transparent,
       child: Ink(
@@ -54,7 +57,7 @@ class WaCard extends StatelessWidget {
             borderRadius: br,
             child: Stack(
               children: [
-                if (pattern)
+                if (showPattern)
                   Positioned.fill(
                     child: CustomPaint(painter: SeigaihaPainter(color: WaColors.washi.withValues(alpha: 0.035))),
                   ),
@@ -68,7 +71,7 @@ class WaCard extends StatelessWidget {
   }
 }
 
-/// Pola ombak seigaiha (青海波).
+/// Pola ombak seigaiha.
 class SeigaihaPainter extends CustomPainter {
   SeigaihaPainter({required this.color, this.radius = 22});
 
@@ -99,7 +102,7 @@ class SeigaihaPainter extends CustomPainter {
   bool shouldRepaint(covariant SeigaihaPainter old) => old.color != color || old.radius != radius;
 }
 
-/// Lingkaran kuas ensō (円相) sebagai indikator progres.
+/// Lingkaran progres bergaya goresan kuas.
 class EnsoRing extends StatelessWidget {
   const EnsoRing({
     super.key,
@@ -157,7 +160,7 @@ class _EnsoPainter extends CustomPainter {
     final radius = size.width / 2 - stroke;
     final rect = Rect.fromCircle(center: center, radius: radius);
     const start = -math.pi / 2 + 0.25;
-    const fullSweep = 2 * math.pi - 0.5; // celah khas ensō
+    const fullSweep = 2 * math.pi - 0.5;
 
     canvas.drawArc(
       rect,
@@ -172,7 +175,6 @@ class _EnsoPainter extends CustomPainter {
     );
 
     if (progress <= 0) return;
-    // Goresan kuas: tebal di awal, meruncing di akhir.
     const segments = 48;
     final sweep = fullSweep * progress;
     for (var i = 0; i < segments; i++) {
@@ -198,7 +200,23 @@ class _EnsoPainter extends CustomPainter {
       old.progress != progress || old.color != color || old.track != track;
 }
 
-/// Lencana kanji berwarna untuk kategori/dompet.
+/// Glyph (kanji/emoji) sebagai teks bila gaya Jepang aktif, atau ikon biasa bila mati.
+class GlyphIcon extends StatelessWidget {
+  const GlyphIcon(this.glyph, {super.key, required this.color, this.size = 20});
+
+  final String glyph;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = S.of(context).jp ? null : iconForGlyph(glyph);
+    if (icon != null) return Icon(icon, color: color, size: size);
+    return Text(glyph, style: AppTheme.serif(size: size * 0.95, weight: FontWeight.w700, color: color, height: 1.1));
+  }
+}
+
+/// Lencana berwarna untuk kategori/dompet.
 class KanjiBadge extends StatelessWidget {
   const KanjiBadge({super.key, required this.glyph, required this.color, this.size = 42, this.radius});
 
@@ -218,10 +236,7 @@ class KanjiBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius ?? size * 0.32),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
-      child: Text(
-        glyph,
-        style: AppTheme.serif(size: size * 0.46, weight: FontWeight.w700, color: color, height: 1.1),
-      ),
+      child: GlyphIcon(glyph, color: color, size: size * 0.5),
     );
   }
 }
@@ -272,18 +287,21 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader({super.key, required this.title, this.jp, this.action, this.onAction});
 
   final String title;
+
+  /// Label Jepang kecil, hanya tampil saat gaya Jepang aktif.
   final String? jp;
   final String? action;
   final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
+    final showJp = jp != null && S.of(context).jp;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (jp != null) ...[
+          if (showJp) ...[
             Text(jp!, style: AppTheme.serif(size: 16, color: WaColors.accent, weight: FontWeight.w700)),
             const SizedBox(width: 8),
           ],
@@ -321,7 +339,7 @@ class EmptyState extends StatelessWidget {
               size: 96,
               color: WaColors.washiFaint,
               trackColor: Colors.transparent,
-              child: Text(kanji, style: AppTheme.serif(size: 36, color: WaColors.washiMuted)),
+              child: GlyphIcon(kanji, color: WaColors.washiMuted, size: 36),
             ),
             const SizedBox(height: 16),
             Text(title, textAlign: TextAlign.center, style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
@@ -340,7 +358,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Garis tipis progres horizontal bergaya kuas.
+/// Garis tipis progres horizontal.
 class InkBar extends StatelessWidget {
   const InkBar({super.key, required this.value, this.color, this.height = 6});
 
@@ -378,13 +396,14 @@ class InkBar extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// Hanko (判子) — cap stempel saat transaksi disimpan
+// Animasi cap saat data tersimpan
 // -----------------------------------------------------------------------------
 
 Future<void> showHanko(BuildContext context, {String glyph = '済', String? label}) async {
   HapticFeedback.mediumImpact();
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
+  final jp = S.of(context).jp;
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => IgnorePointer(
@@ -409,7 +428,9 @@ Future<void> showHanko(BuildContext context, {String glyph = '済', String? labe
                   shape: BoxShape.circle,
                   border: Border.all(color: WaColors.beni.withValues(alpha: 0.7), width: 1.5),
                 ),
-                child: Text(glyph, style: AppTheme.serif(size: 54, weight: FontWeight.w800, color: WaColors.beni)),
+                child: jp
+                    ? Text(glyph, style: AppTheme.serif(size: 54, weight: FontWeight.w800, color: WaColors.beni))
+                    : Icon(iconForGlyph(glyph) ?? Icons.check, size: 52, color: WaColors.beni),
               ),
             )
                 .animate()
@@ -434,27 +455,28 @@ Future<void> showHanko(BuildContext context, {String glyph = '済', String? labe
 }
 
 // -----------------------------------------------------------------------------
-// Pickers & dialogs
+// Dialog & pemilih
 // -----------------------------------------------------------------------------
 
 Future<bool> confirmDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String confirm = 'Hapus',
+  String? confirm,
   bool destructive = true,
 }) async {
+  final s = S.of(context);
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(title),
       content: Text(message, style: AppTheme.sans(size: 14, color: WaColors.washiMuted)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
         FilledButton(
           style: destructive ? FilledButton.styleFrom(backgroundColor: WaColors.expense) : null,
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(confirm),
+          child: Text(confirm ?? s.delete),
         ),
       ],
     ),
@@ -493,7 +515,9 @@ class ColorPickerRow extends StatelessWidget {
   }
 }
 
+/// Pilih ikon. Nilai yang disimpan tetap glyph, tampilannya mengikuti gaya Jepang.
 Future<String?> pickKanji(BuildContext context, {String? current, Color color = WaColors.accent}) {
+  final s = S.of(context);
   final custom = TextEditingController();
   return showModalBottomSheet<String>(
     context: context,
@@ -505,13 +529,13 @@ Future<String?> pickKanji(BuildContext context, {String? current, Color color = 
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            Text('Pilih Ikon Kanji', style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+            Text(s.t('Pilih ikon', 'Choose an icon'), style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
             const SizedBox(height: 12),
             TextField(
               controller: custom,
               maxLength: 2,
               decoration: InputDecoration(
-                hintText: 'Atau ketik sendiri (kanji / emoji)',
+                hintText: s.t('Atau ketik emoji sendiri', 'Or type your own emoji'),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.check),
                   onPressed: () => custom.text.trim().isEmpty ? null : Navigator.pop(ctx, custom.text.trim()),
@@ -542,9 +566,10 @@ Future<String?> pickKanji(BuildContext context, {String? current, Color color = 
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(k.glyph, style: AppTheme.serif(size: 26, color: color, weight: FontWeight.w700)),
+                          GlyphIcon(k.glyph, color: color, size: 26),
+                          const SizedBox(height: 4),
                           Text(
-                            k.meaning,
+                            k.meaning(s),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.sans(size: 10, color: WaColors.washiMuted),
@@ -564,6 +589,7 @@ Future<String?> pickKanji(BuildContext context, {String? current, Color color = 
 }
 
 Future<String?> pickCurrency(BuildContext context, {String? current}) {
+  final s = S.of(context);
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
@@ -575,13 +601,13 @@ Future<String?> pickCurrency(BuildContext context, {String? current}) {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Pilih Mata Uang', style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+            child: Text(s.t('Pilih mata uang', 'Choose currency'), style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
           ),
           for (final c in kCurrencies)
             ListTile(
               leading: Text(c.flag, style: const TextStyle(fontSize: 24)),
-              title: Text('${c.code} · ${c.symbol}'),
-              subtitle: Text(c.name, style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+              title: Text('${c.code} (${c.symbol})'),
+              subtitle: Text(c.name(s), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
               trailing: c.code == current ? const Icon(Icons.check, color: WaColors.accent) : null,
               onTap: () => Navigator.pop(ctx, c.code),
             ),

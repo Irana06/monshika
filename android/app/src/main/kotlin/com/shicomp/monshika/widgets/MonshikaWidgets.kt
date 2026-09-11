@@ -25,13 +25,17 @@ private const val MUTED = 0xFF9A948A.toInt()
 private const val INCOME = 0xFF9CC48F.toInt()
 private const val EXPENSE = 0xFFE0605A.toInt()
 
-/** Ukuran widget saat ini (dp, orientasi potret). 0 = belum diketahui → anggap besar. */
+/** Ukuran widget saat ini (dp, orientasi potret). 0 berarti belum diketahui, anggap besar. */
 data class WidgetSize(val width: Int, val height: Int) {
     fun narrowerThan(dp: Int) = width in 1 until dp
     fun shorterThan(dp: Int) = height in 1 until dp
 }
 
-/** Helper untuk membaca data yang disimpan Flutter lewat home_widget. */
+/**
+ * Helper untuk membaca data yang disimpan Flutter lewat home_widget.
+ * Semua teks label (key "txt_*") sudah diterjemahkan di Flutter sesuai bahasa
+ * dan gaya Jepang yang dipilih pengguna.
+ */
 internal object W {
     fun str(p: SharedPreferences, key: String, default: String = ""): String =
         (p.all[key] as? String)?.takeIf { it.isNotEmpty() } ?: default
@@ -71,7 +75,7 @@ abstract class MonshikaWidget(private val layout: Int) : HomeWidgetProvider() {
         for (id in appWidgetIds) render(context, appWidgetManager, id, widgetData)
     }
 
-    /** Dipanggil saat pengguna me-resize widget → susun ulang sesuai ukuran baru. */
+    /** Dipanggil saat widget di-resize, jadi isinya disusun ulang sesuai ukuran baru. */
     override fun onAppWidgetOptionsChanged(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -92,7 +96,7 @@ abstract class MonshikaWidget(private val layout: Int) : HomeWidgetProvider() {
         try {
             bind(context, views, data, size)
         } catch (e: Exception) {
-            // Data belum ada / rusak — tetap tampilkan layout default.
+            // Data belum ada atau rusak, tetap tampilkan layout default.
         }
         manager.updateAppWidget(id, views)
     }
@@ -100,10 +104,13 @@ abstract class MonshikaWidget(private val layout: Int) : HomeWidgetProvider() {
     abstract fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize)
 }
 
-/** Catat cepat — 1×1 hanya tombol 速, 2×1 ke atas − / 速 / +. */
+/** Catat cepat. Ukuran 1×1 hanya tombol ketik, 2×1 ke atas ada tombol keluar dan masuk. */
 class QuickAddWidget : MonshikaWidget(R.layout.widget_quick_add) {
     override fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize) {
         val tiny = size.narrowerThan(100)
+        v.setTextViewText(R.id.btn_expense, W.str(p, "txt_btn_expense", "-"))
+        v.setTextViewText(R.id.btn_quick, W.str(p, "txt_btn_quick", "⚡"))
+        v.setTextViewText(R.id.btn_income, W.str(p, "txt_btn_income", "+"))
         W.show(v, R.id.btn_expense, !tiny)
         W.show(v, R.id.btn_income, !tiny)
         v.setOnClickPendingIntent(R.id.btn_expense, W.quickAdd(context, "expense", "form"))
@@ -112,15 +119,18 @@ class QuickAddWidget : MonshikaWidget(R.layout.widget_quick_add) {
     }
 }
 
-/** Ringkasan saldo & arus kas bulan ini. */
+/** Ringkasan saldo dan arus kas bulan ini. */
 class SummaryWidget : MonshikaWidget(R.layout.widget_summary) {
     override fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize) {
-        v.setTextViewText(R.id.total, W.str(p, "total_balance", "Buka Monshika"))
+        v.setTextViewText(R.id.title, W.str(p, "txt_summary_title", "Monshika"))
+        v.setTextViewText(R.id.total, W.str(p, "total_balance", W.str(p, "txt_open_app", "Monshika")))
         v.setTextViewText(R.id.month, W.str(p, "month_label"))
-        v.setTextViewText(R.id.income, "入 " + W.str(p, "income", "–"))
-        v.setTextViewText(R.id.expense, "出 " + W.str(p, "expense", "–"))
-        v.setTextViewText(R.id.safe, "今日 sisa aman " + W.str(p, "safe_today_left", "–"))
+        v.setTextViewText(R.id.income, W.str(p, "txt_income", "+"))
+        v.setTextViewText(R.id.expense, W.str(p, "txt_expense", "-"))
+        v.setTextViewText(R.id.safe, W.str(p, "txt_safe_line"))
         v.setTextColor(R.id.safe, if (W.bool(p, "safe_over")) EXPENSE else 0xFFC9A45C.toInt())
+        v.setTextViewText(R.id.btn_expense, W.str(p, "txt_btn_expense", "-"))
+        v.setTextViewText(R.id.btn_income, W.str(p, "txt_btn_income", "+"))
 
         W.show(v, R.id.month, !size.narrowerThan(170))
         W.show(v, R.id.flow_row, !size.shorterThan(80))
@@ -133,15 +143,16 @@ class SummaryWidget : MonshikaWidget(R.layout.widget_summary) {
     }
 }
 
-/** Sisa aman dibelanjakan hari ini. */
+/** Uang yang masih aman dipakai hari ini. */
 class SafeSpendWidget : MonshikaWidget(R.layout.widget_safe_spend) {
     override fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize) {
         val over = W.bool(p, "safe_over")
-        v.setTextViewText(R.id.safe_left, W.str(p, "safe_today_left", "–"))
+        v.setTextViewText(R.id.label, W.str(p, "txt_safe_title", "Safe to spend today"))
+        v.setTextViewText(R.id.safe_left, W.str(p, "safe_today_left", "-"))
         v.setTextColor(R.id.safe_left, if (over) EXPENSE else WASHI)
         v.setProgressBar(R.id.progress, 100, W.int(p, "safe_ratio").coerceIn(0, 100), false)
-        v.setTextViewText(R.id.per_day, "Jatah " + W.str(p, "safe_per_day", "–") + "/hari")
-        v.setTextViewText(R.id.spent, "Terpakai " + W.str(p, "today_spent", "–"))
+        v.setTextViewText(R.id.per_day, W.str(p, "txt_per_day"))
+        v.setTextViewText(R.id.spent, W.str(p, "txt_spent"))
 
         W.show(v, R.id.progress, !size.shorterThan(70))
         W.show(v, R.id.per_day, !size.shorterThan(90))
@@ -151,9 +162,11 @@ class SafeSpendWidget : MonshikaWidget(R.layout.widget_safe_spend) {
     }
 }
 
-/** Grafik 7 hari (gambar dirender Flutter). */
+/** Grafik 7 hari (gambarnya dirender oleh Flutter). */
 class ChartWidget : MonshikaWidget(R.layout.widget_chart) {
     override fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize) {
+        v.setTextViewText(R.id.title, W.str(p, "txt_chart_title", "7 days"))
+        v.setTextViewText(R.id.empty, W.str(p, "txt_chart_empty", "Open Monshika to load the chart"))
         v.setTextViewText(R.id.week_total, W.str(p, "week_total"))
         W.show(v, R.id.header_row, !size.shorterThan(90))
         val path = W.str(p, "chart_image")
@@ -182,6 +195,7 @@ class PresetWidget : MonshikaWidget(R.layout.widget_preset) {
         val maxCells = if (size.width <= 0) 4 else (size.width / 62).coerceIn(1, 4)
         val count = minOf(presets.length(), maxCells)
         val showLabels = !size.shorterThan(56)
+        v.setTextViewText(R.id.empty, W.str(p, "txt_preset_empty", "Add presets in Monshika"))
         W.show(v, R.id.empty, presets.length() == 0)
         W.show(v, R.id.row, presets.length() > 0)
         for (i in cells.indices) {
@@ -203,7 +217,7 @@ class PresetWidget : MonshikaWidget(R.layout.widget_preset) {
     }
 }
 
-/** Budget dengan pemakaian tertinggi. Jumlah baris mengikuti tinggi widget. */
+/** Budget yang paling banyak terpakai. Jumlah baris mengikuti tinggi widget. */
 class BudgetWidget : MonshikaWidget(R.layout.widget_budget) {
     private val rows = intArrayOf(R.id.b_0, R.id.b_1, R.id.b_2)
     private val names = intArrayOf(R.id.b_0_name, R.id.b_1_name, R.id.b_2_name)
@@ -215,18 +229,21 @@ class BudgetWidget : MonshikaWidget(R.layout.widget_budget) {
         val items = W.array(p, "budgets")
         val showHeader = !size.shorterThan(80)
         val maxRows = if (size.height <= 0) 3 else ((size.height - (if (showHeader) 36 else 16)) / 40).coerceIn(1, 3)
+        v.setTextViewText(R.id.header, W.str(p, "txt_budget_title", "Budget"))
+        v.setTextViewText(R.id.empty, W.str(p, "txt_budget_empty", "No budgets yet"))
         W.show(v, R.id.header, showHeader)
         W.show(v, R.id.empty, items.length() == 0)
         for (i in rows.indices) {
             if (i < items.length() && i < maxRows) {
                 val o = items.getJSONObject(i)
                 val pct = o.optInt("pct")
+                val icon = o.optString("icon")
                 W.show(v, rows[i], true)
-                v.setTextViewText(names[i], o.optString("icon") + "  " + o.optString("name"))
+                v.setTextViewText(names[i], if (icon.isEmpty()) o.optString("name") else icon + "  " + o.optString("name"))
                 v.setTextViewText(pcts[i], "$pct%")
                 v.setTextColor(pcts[i], if (pct >= 100) EXPENSE else if (pct >= 80) 0xFFE6B422.toInt() else 0xFFC9A45C.toInt())
                 v.setProgressBar(bars[i], 100, pct.coerceIn(0, 100), false)
-                v.setTextViewText(lefts[i], "Sisa " + o.optString("left"))
+                v.setTextViewText(lefts[i], o.optString("left"))
                 W.show(v, lefts[i], !size.shorterThan(90))
             } else {
                 W.show(v, rows[i], false)
@@ -236,7 +253,7 @@ class BudgetWidget : MonshikaWidget(R.layout.widget_budget) {
     }
 }
 
-/** Tagihan & jatuh tempo 14 hari ke depan. Jumlah baris mengikuti tinggi widget. */
+/** Tagihan dan jatuh tempo 14 hari ke depan. Jumlah baris mengikuti tinggi widget. */
 class UpcomingWidget : MonshikaWidget(R.layout.widget_upcoming) {
     private val rows = intArrayOf(R.id.u_0, R.id.u_1, R.id.u_2, R.id.u_3)
     private val icons = intArrayOf(R.id.u_0_icon, R.id.u_1_icon, R.id.u_2_icon, R.id.u_3_icon)
@@ -248,18 +265,21 @@ class UpcomingWidget : MonshikaWidget(R.layout.widget_upcoming) {
         val items = W.array(p, "upcoming")
         val showHeader = !size.shorterThan(80)
         val maxRows = if (size.height <= 0) 4 else ((size.height - (if (showHeader) 36 else 16)) / 34).coerceIn(1, 4)
+        v.setTextViewText(R.id.header, W.str(p, "txt_upcoming_title", "Upcoming bills"))
+        v.setTextViewText(R.id.empty, W.str(p, "txt_upcoming_empty", "No bills coming up"))
         W.show(v, R.id.header, showHeader)
         W.show(v, R.id.empty, items.length() == 0)
         for (i in rows.indices) {
             if (i < items.length() && i < maxRows) {
                 val o = items.getJSONObject(i)
                 val income = o.optBoolean("income")
+                val icon = o.optString("icon")
                 W.show(v, rows[i], true)
-                W.show(v, icons[i], !size.narrowerThan(150))
-                v.setTextViewText(icons[i], o.optString("icon"))
+                W.show(v, icons[i], icon.isNotEmpty() && !size.narrowerThan(150))
+                v.setTextViewText(icons[i], icon)
                 v.setTextViewText(titles[i], o.optString("title"))
                 v.setTextViewText(dates[i], o.optString("date"))
-                v.setTextViewText(amounts[i], (if (income) "+" else "−") + o.optString("amount"))
+                v.setTextViewText(amounts[i], (if (income) "+" else "-") + o.optString("amount"))
                 v.setTextColor(amounts[i], if (income) INCOME else EXPENSE)
             } else {
                 W.show(v, rows[i], false)
@@ -269,18 +289,18 @@ class UpcomingWidget : MonshikaWidget(R.layout.widget_upcoming) {
     }
 }
 
-/** Progres target tabungan. 1×1 hanya ikon + persen. */
+/** Progres target tabungan. Ukuran 1×1 hanya ikon dan persen. */
 class GoalWidget : MonshikaWidget(R.layout.widget_goal) {
     override fun bind(context: Context, v: RemoteViews, p: SharedPreferences, size: WidgetSize) {
         val o = W.obj(p, "goal")
         if (o == null) {
-            v.setTextViewText(R.id.icon, "夢")
-            v.setTextViewText(R.id.name, "Belum ada target")
+            v.setTextViewText(R.id.icon, W.str(p, "txt_goal_icon", "🎯"))
+            v.setTextViewText(R.id.name, W.str(p, "txt_goal_empty", "No goal yet"))
             v.setTextViewText(R.id.pct, "")
-            v.setTextViewText(R.id.amounts, "Buat di Monshika")
+            v.setTextViewText(R.id.amounts, W.str(p, "txt_goal_hint", "Create one in Monshika"))
             v.setProgressBar(R.id.bar, 100, 0, false)
         } else {
-            v.setTextViewText(R.id.icon, o.optString("icon"))
+            v.setTextViewText(R.id.icon, o.optString("icon").ifEmpty { W.str(p, "txt_goal_icon", "🎯") })
             v.setTextColor(R.id.icon, o.optLong("color", 0xFFE8A6B5).toInt())
             v.setTextViewText(R.id.name, o.optString("name"))
             v.setTextViewText(R.id.pct, o.optInt("pct").toString() + "%")

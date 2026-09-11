@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 import '../../services/money_actions.dart';
@@ -27,6 +28,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final all = ref.watch(allAccountsProvider).value ?? const <Account>[];
@@ -35,10 +37,10 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dompet · 財布'),
+        title: Text(t.withJp('財布', t.wallets)),
         actions: [
           IconButton(
-            tooltip: _showArchived ? 'Sembunyikan arsip' : 'Tampilkan arsip',
+            tooltip: _showArchived ? t.t('Sembunyikan arsip', 'Hide archived') : t.t('Tampilkan arsip', 'Show archived'),
             icon: Icon(_showArchived ? Icons.inventory_2 : Icons.inventory_2_outlined),
             onPressed: () => setState(() => _showArchived = !_showArchived),
           ),
@@ -56,17 +58,21 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             pattern: true,
             child: Row(
               children: [
-                Expanded(child: _Metric('総資産 Total', formatMoney(f.totalBalance, s.baseCurrency, hidden: s.hideBalance), WaColors.washi)),
-                Expanded(child: _Metric('資 Aset', formatMoney(f.assets, s.baseCurrency, compact: true, hidden: s.hideBalance), WaColors.income)),
-                Expanded(child: _Metric('負 Utang', formatMoney(f.liabilities, s.baseCurrency, compact: true, hidden: s.hideBalance), WaColors.expense)),
+                Expanded(child: _Metric(t.withJp('総資産', 'Total'), formatMoney(f.totalBalance, s.baseCurrency, hidden: s.hideBalance), WaColors.washi)),
+                Expanded(child: _Metric(t.withJp('資', t.t('Aset', 'Assets')), formatMoney(f.assets, s.baseCurrency, compact: true, hidden: s.hideBalance), WaColors.income)),
+                Expanded(child: _Metric(t.withJp('負', t.t('Utang', 'Debts')), formatMoney(f.liabilities, s.baseCurrency, compact: true, hidden: s.hideBalance), WaColors.expense)),
               ],
             ),
           ),
           if (visible.isEmpty)
-            const EmptyState(kanji: '財', title: 'Belum ada dompet', subtitle: 'Tambahkan tunai, rekening bank, atau e-wallet.'),
-          for (final type in kAccountTypes.keys)
+            EmptyState(
+              kanji: '財',
+              title: t.t('Belum ada dompet', 'No wallets yet'),
+              subtitle: t.t('Tambahkan uang tunai, rekening bank, atau e-wallet.', 'Add your cash, bank account, or e-wallet.'),
+            ),
+          for (final type in kAccountTypeKeys)
             if (groups[type] != null) ...[
-              SectionHeader(title: kAccountTypes[type]!.$1, jp: kAccountTypes[type]!.$2),
+              SectionHeader(title: accountTypeLabel(t, type), jp: accountTypeGlyph(type)),
               WaCard(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Column(
@@ -132,11 +138,12 @@ class AccountDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final a = ref.watch(accountMapProvider)[accountId];
     final s = ref.watch(settingsProvider);
     final f = ref.watch(financeProvider);
     final txs = ref.watch(transactionsProvider(TxFilter(accountIds: {accountId}, limit: 300))).value ?? const <TxEntry>[];
-    if (a == null) return const Scaffold(body: Center(child: Text('Dompet tidak ditemukan')));
+    if (a == null) return Scaffold(body: Center(child: Text(t.t('Dompet tidak ditemukan', 'Wallet not found'))));
     final balance = f.accountBalance(a.id);
     final isCredit = a.type == 'credit' || a.type == 'paylater';
 
@@ -162,17 +169,21 @@ class AccountDetailScreen extends ConsumerWidget {
                 Row(children: [
                   KanjiBadge(glyph: a.icon, color: Color(a.color), size: 44),
                   const SizedBox(width: 12),
-                  Text('${kAccountTypes[a.type]?.$1 ?? a.type} · ${a.currency}', style: AppTheme.sans(color: WaColors.washiMuted)),
+                  Text('${accountTypeLabel(t, a.type)} · ${a.currency}', style: AppTheme.sans(color: WaColors.washiMuted)),
                 ]),
                 const SizedBox(height: 14),
-                Text(isCredit ? 'Tagihan berjalan' : 'Saldo', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+                Text(isCredit ? t.t('Tagihan berjalan', 'Current bill') : t.t('Saldo', 'Balance'),
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                 Text(formatMoney(balance, a.currency, hidden: s.hideBalance), style: AppTheme.serif(size: 30, weight: FontWeight.w700)),
                 if (isCredit && a.creditLimit != null && a.creditLimit! > 0) ...[
                   const SizedBox(height: 10),
                   InkBar(value: (-balance) / a.creditLimit!, height: 7),
                   const SizedBox(height: 4),
                   Text(
-                    'Terpakai ${formatMoney(-balance, a.currency, compact: true, hidden: s.hideBalance)} dari limit ${formatMoney(a.creditLimit!, a.currency, compact: true, hidden: s.hideBalance)}',
+                    t.t(
+                      'Terpakai ${formatMoney(-balance, a.currency, compact: true, hidden: s.hideBalance)} dari limit ${formatMoney(a.creditLimit!, a.currency, compact: true, hidden: s.hideBalance)}',
+                      '${formatMoney(-balance, a.currency, compact: true, hidden: s.hideBalance)} used of ${formatMoney(a.creditLimit!, a.currency, compact: true, hidden: s.hideBalance)} limit',
+                    ),
                     style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                   ),
                 ],
@@ -186,7 +197,7 @@ class AccountDetailScreen extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Transfer'),
+                  label: Text(t.transfer),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => TransactionFormScreen(initialType: 'transfer', initialAccountId: a.id)),
@@ -197,19 +208,19 @@ class AccountDetailScreen extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.tune),
-                  label: const Text('Sesuaikan'),
+                  label: Text(t.t('Koreksi saldo', 'Fix balance')),
                   onPressed: () => _adjust(context, ref, a, balance),
                 ),
               ),
             ],
           ),
-          const SectionHeader(title: 'Riwayat', jp: '歴'),
+          SectionHeader(title: t.t('Riwayat', 'History'), jp: '歴'),
           if (txs.isEmpty)
-            const EmptyState(kanji: '無', title: 'Belum ada transaksi di dompet ini')
+            EmptyState(kanji: '無', title: t.t('Dompet ini belum punya transaksi', 'No transactions in this wallet yet'))
           else
             WaCard(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(children: [for (final t in txs) TransactionTile(tx: t, showDate: true)]),
+              child: Column(children: [for (final tx in txs) TransactionTile(tx: tx, showDate: true)]),
             ),
         ],
       ),
@@ -217,16 +228,20 @@ class AccountDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _adjust(BuildContext context, WidgetRef ref, Account a, double current) async {
+    final t = S.of(context);
     final ctrl = TextEditingController(text: current.toStringAsFixed(currencyInfo(a.currency).decimals));
     final value = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sesuaikan saldo'),
+        title: Text(t.t('Koreksi saldo', 'Fix balance')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Masukkan saldo sebenarnya. Selisihnya dicatat sebagai "Penyesuaian Saldo" (tidak masuk statistik).',
-                style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
+            Text(
+              t.t('Isi saldo yang sebenarnya. Selisihnya dicatat sebagai penyesuaian dan tidak dihitung di statistik.',
+                  "Enter the real balance. The difference is saved as an adjustment and won't show up in stats."),
+              style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
@@ -237,14 +252,14 @@ class AccountDetailScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, parseAmount(ctrl.text)), child: const Text('Simpan')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, parseAmount(ctrl.text)), child: Text(t.save)),
         ],
       ),
     );
     if (value == null) return;
     await MoneyActions(ref.read(databaseProvider)).adjustBalance(a, currentBalance: current, actualBalance: value);
-    if (context.mounted) showSnack(context, 'Saldo disesuaikan');
+    if (context.mounted) showSnack(context, t.t('Saldo sudah dikoreksi', 'Balance updated'));
   }
 }
 
@@ -266,13 +281,14 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   late final _note = TextEditingController(text: widget.existing?.note ?? '');
   late String _type = widget.existing?.type ?? 'bank';
   late String _currency = widget.existing?.currency ?? ref.read(settingsProvider).baseCurrency;
-  late String _icon = widget.existing?.icon ?? kAccountTypes[_type]!.$2;
+  late String _icon = widget.existing?.icon ?? accountTypeGlyph(_type);
   late int _color = widget.existing?.color ?? WaColors.ai.toARGB32();
   late bool _include = widget.existing?.includeInTotal ?? true;
   late bool _archived = widget.existing?.archived ?? false;
 
   Future<void> _save() async {
-    if (_name.text.trim().isEmpty) return showSnack(context, 'Nama dompet wajib diisi');
+    final t = S.of(context);
+    if (_name.text.trim().isEmpty) return showSnack(context, t.t('Nama dompet belum diisi', 'Give the wallet a name'));
     final db = ref.read(databaseProvider);
     await db.saveAccount(AccountsCompanion(
       id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
@@ -291,10 +307,14 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   }
 
   Future<void> _delete() async {
+    final t = S.of(context);
     final ok = await confirmDialog(
       context,
-      title: 'Hapus dompet?',
-      message: 'Semua transaksi, preset, dan jadwal berulang yang memakai dompet ini ikut terhapus. Pertimbangkan "Arsipkan" saja.',
+      title: t.t('Hapus dompet ini?', 'Delete this wallet?'),
+      message: t.t(
+        'Semua transaksi, preset, dan jadwal rutin yang memakai dompet ini juga ikut terhapus. Kalau cuma ingin disembunyikan, pakai Arsipkan.',
+        'All transactions, presets, and schedules that use this wallet will be deleted too. If you just want to hide it, archive it instead.',
+      ),
     );
     if (!ok) return;
     await ref.read(databaseProvider).deleteAccount(widget.existing!.id);
@@ -303,11 +323,12 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final info = currencyInfo(_currency);
     final isCredit = _type == 'credit' || _type == 'paylater';
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Dompet Baru' : 'Ubah Dompet'),
+        title: Text(widget.existing == null ? t.t('Dompet baru', 'New wallet') : t.t('Ubah dompet', 'Edit wallet')),
         actions: [if (widget.existing != null) IconButton(onPressed: _delete, icon: const Icon(Icons.delete_outline))],
       ),
       body: ListView(
@@ -323,33 +344,36 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          Center(child: Text('Ketuk untuk ganti ikon', style: AppTheme.sans(size: 11, color: WaColors.washiMuted))),
+          Center(child: Text(t.t('Ketuk untuk ganti ikon', 'Tap to change icon'), style: AppTheme.sans(size: 11, color: WaColors.washiMuted))),
           const SizedBox(height: 16),
-          LabeledField(label: 'Nama', child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'mis. BCA, GoPay, Dompet'))),
           LabeledField(
-            label: 'Jenis',
+            label: t.name,
+            child: TextField(controller: _name, decoration: InputDecoration(hintText: t.t('Contoh: BCA, GoPay, Dompet', 'e.g. Chase, PayPal, Cash'))),
+          ),
+          LabeledField(
+            label: t.t('Jenis', 'Type'),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final e in kAccountTypes.entries)
+                for (final key in kAccountTypeKeys)
                   ChoiceChip(
-                    avatar: Text(e.value.$2, style: AppTheme.serif(size: 13)),
-                    label: Text(e.value.$1),
-                    selected: _type == e.key,
+                    avatar: GlyphIcon(accountTypeGlyph(key), color: WaColors.washi, size: 15),
+                    label: Text(accountTypeLabel(t, key)),
+                    selected: _type == key,
                     onSelected: (_) => setState(() {
-                      if (_icon == kAccountTypes[_type]!.$2) _icon = e.value.$2;
-                      _type = e.key;
+                      if (_icon == accountTypeGlyph(_type)) _icon = accountTypeGlyph(key);
+                      _type = key;
                     }),
                   ),
               ],
             ),
           ),
           LabeledField(
-            label: 'Mata uang',
+            label: t.currency,
             child: PickerTile(
               leading: Text(info.flag, style: const TextStyle(fontSize: 24)),
-              title: '${info.code} · ${info.name}',
+              title: '${info.code} · ${info.name(t)}',
               onTap: () async {
                 final c = await pickCurrency(context, current: _currency);
                 if (c != null) setState(() => _currency = c);
@@ -357,7 +381,9 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
             ),
           ),
           LabeledField(
-            label: isCredit ? 'Tagihan awal (isi negatif, mis. -500000)' : 'Saldo awal',
+            label: isCredit
+                ? t.t('Tagihan awal (tulis minus, contoh -500000)', 'Starting bill (use a minus, e.g. -500)')
+                : t.t('Saldo awal', 'Starting balance'),
             child: TextField(
               controller: _balance,
               keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -366,31 +392,35 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
           ),
           if (isCredit)
             LabeledField(
-              label: 'Limit kredit',
+              label: t.t('Limit kartu', 'Credit limit'),
               child: TextField(
                 controller: _limit,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(prefixText: '${info.symbol} '),
               ),
             ),
-          LabeledField(label: 'Warna', child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
-          LabeledField(label: 'Catatan', child: TextField(controller: _note, decoration: const InputDecoration(hintText: 'No. rekening, dll (opsional)'))),
+          LabeledField(label: t.color, child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
+          LabeledField(
+            label: t.note,
+            child: TextField(controller: _note, decoration: InputDecoration(hintText: t.t('No. rekening atau lainnya (opsional)', 'Account number or anything else (optional)'))),
+          ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Hitung di total saldo'),
+            title: Text(t.t('Masukkan ke total saldo', 'Include in total balance')),
             value: _include,
             onChanged: (v) => setState(() => _include = v),
           ),
           if (widget.existing != null)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Arsipkan'),
-              subtitle: Text('Sembunyikan dari daftar tanpa menghapus riwayat', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+              title: Text(t.archive),
+              subtitle: Text(t.t('Disembunyikan dari daftar, riwayatnya tetap ada', 'Hidden from the list, history stays'),
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
               value: _archived,
               onChanged: (v) => setState(() => _archived = v),
             ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _save, child: Text(t.save)),
         ],
       ),
     );

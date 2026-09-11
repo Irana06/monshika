@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/security_service.dart';
 
@@ -58,6 +59,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -68,13 +70,15 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               size: 110,
               color: WaColors.beni,
               trackColor: Colors.transparent,
-              child: Text('鍵', style: AppTheme.serif(size: 44, weight: FontWeight.w700)),
+              child: const GlyphIcon('鍵', color: WaColors.washi, size: 44),
             ),
             const SizedBox(height: 20),
-            Text('Masukkan PIN', style: AppTheme.serif(size: 22, weight: FontWeight.w600)),
+            Text(s.t('Masukkan PIN', 'Enter your PIN'), style: AppTheme.serif(size: 22, weight: FontWeight.w600)),
             const SizedBox(height: 6),
             Text(
-              _error ? 'PIN salah${_attempts > 2 ? ' ($_attempts kali)' : ''}' : 'Monshika terkunci',
+              _error
+                  ? (_attempts > 2 ? s.t('PIN salah ($_attempts kali)', 'Wrong PIN ($_attempts tries)') : s.t('PIN salah', 'Wrong PIN'))
+                  : s.t('Monshika terkunci', 'Monshika is locked'),
               style: AppTheme.sans(size: 13, color: _error ? WaColors.expense : WaColors.washiMuted),
             ),
             const SizedBox(height: 24),
@@ -172,7 +176,7 @@ class PinPad extends StatelessWidget {
   }
 }
 
-/// Buat / ganti PIN (dimasukkan dua kali). Mengembalikan true bila tersimpan.
+/// Buat atau ganti PIN (dimasukkan dua kali). Mengembalikan true bila tersimpan.
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
 
@@ -186,7 +190,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   bool _confirming = false;
   bool _error = false;
 
-  Future<void> _onDigit(String d) async {
+  void _onDigit(String d) {
     if (_pin.length >= 6) return;
     setState(() {
       _pin += d;
@@ -218,16 +222,20 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Atur PIN')),
+      appBar: AppBar(title: Text(s.t('Atur PIN', 'Set PIN'))),
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 24),
-            Text(_confirming ? 'Ulangi PIN' : 'Buat PIN (4–6 digit)', style: AppTheme.serif(size: 22, weight: FontWeight.w600)),
+            Text(
+              _confirming ? s.t('Ketik ulang PIN', 'Enter PIN again') : s.t('Buat PIN 4 sampai 6 angka', 'Create a 4 to 6 digit PIN'),
+              style: AppTheme.serif(size: 22, weight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Text(
-              _error ? 'PIN tidak sama, coba lagi' : 'PIN dipakai untuk membuka Monshika',
+              _error ? s.t('PIN tidak sama. Coba lagi.', "PINs don't match. Try again.") : s.t('PIN ini dipakai untuk membuka Monshika.', 'You will use this PIN to open Monshika.'),
               style: AppTheme.sans(size: 13, color: _error ? WaColors.expense : WaColors.washiMuted),
             ),
             const SizedBox(height: 28),
@@ -243,7 +251,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _pin.length >= 4 ? _next : null,
-                  child: Text(_confirming ? 'Simpan PIN' : 'Lanjut'),
+                  child: Text(_confirming ? s.t('Simpan PIN', 'Save PIN') : s.next),
                 ),
               ),
             ),

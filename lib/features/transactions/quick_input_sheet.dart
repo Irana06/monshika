@@ -8,6 +8,7 @@ import '../../core/utils/money.dart';
 import '../../core/utils/smart_parser.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/money_actions.dart';
 import '../common/pickers.dart';
@@ -19,7 +20,7 @@ Future<void> showQuickInputSheet(BuildContext context, {String? type}) => showMo
       builder: (_) => QuickInputPanel(initialType: type),
     );
 
-/// Input cepat berbasis teks: "kopi 25rb", "gojek 18.500 ovo", "+8jt gaji".
+/// Catat cepat lewat teks, contoh "kopi 25rb", "gojek 18.500 ovo", "+8jt gaji".
 class QuickInputPanel extends ConsumerStatefulWidget {
   const QuickInputPanel({super.key, this.initialType, this.onSaved, this.onOpenForm});
 
@@ -28,7 +29,7 @@ class QuickInputPanel extends ConsumerStatefulWidget {
   /// Dipanggil setelah tersimpan. Default: tutup sheet.
   final VoidCallback? onSaved;
 
-  /// Override aksi "Form lengkap".
+  /// Ganti aksi tombol form lengkap.
   final void Function(ParsedInput parsed, int? accountId, int? categoryId)? onOpenForm;
 
   @override
@@ -82,10 +83,13 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
   }
 
   Future<void> _save() async {
+    final t = S.of(context);
     final parsed = _parse();
     final accountId = _resolveAccount(parsed);
-    if (parsed.amount == null || parsed.amount! <= 0) return showSnack(context, 'Nominal belum terbaca. Contoh: kopi 25rb');
-    if (accountId == null) return showSnack(context, 'Belum ada dompet');
+    if (parsed.amount == null || parsed.amount! <= 0) {
+      return showSnack(context, t.t('Nominalnya belum kebaca. Coba tulis: kopi 25rb', "Couldn't find an amount. Try: coffee 5"));
+    }
+    if (accountId == null) return showSnack(context, t.t('Belum ada dompet', 'No wallet yet'));
     setState(() => _saving = true);
     await ref.read(databaseProvider).saveTransaction(TransactionsCompanion.insert(
           type: parsed.type,
@@ -95,11 +99,12 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
           date: DateTime.now(),
           note: Value(parsed.note),
         ));
-    await _done('Tercatat', parsed.type == 'income' ? '入' : '済');
+    await _done(t.t('Tersimpan', 'Saved'), parsed.type == 'income' ? '入' : '済');
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final parsed = _parse();
     final accounts = ref.watch(accountMapProvider);
     final categories = ref.watch(categoryMapProvider);
@@ -118,16 +123,18 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
         children: [
           Row(
             children: [
-              Text('速記', style: AppTheme.serif(size: 18, color: WaColors.accent, weight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Text('Catat Cepat', style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+              if (t.jp) ...[
+                Text('速記', style: AppTheme.serif(size: 18, color: WaColors.accent, weight: FontWeight.w700)),
+                const SizedBox(width: 8),
+              ],
+              Text(t.t('Catat cepat', 'Quick add'), style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
               const Spacer(),
               SegmentedButton<String>(
                 showSelectedIcon: false,
                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
                 segments: const [
                   ButtonSegment(value: 'auto', label: Text('Auto')),
-                  ButtonSegment(value: 'expense', label: Text('−')),
+                  ButtonSegment(value: 'expense', label: Text('-')),
                   ButtonSegment(value: 'income', label: Text('+')),
                 ],
                 selected: {_forcedType ?? 'auto'},
@@ -146,9 +153,9 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _save(),
             style: AppTheme.sans(size: 17),
-            decoration: const InputDecoration(
-              hintText: 'mis. kopi 25rb · gojek 18.500 ovo · +8jt gaji',
-              prefixIcon: Icon(Icons.bolt, color: WaColors.accent),
+            decoration: InputDecoration(
+              hintText: t.t('Contoh: kopi 25rb, gojek 18.500 ovo, +8jt gaji', 'e.g. coffee 5, lunch 12 cash, +3000 salary'),
+              prefixIcon: const Icon(Icons.bolt, color: WaColors.accent),
             ),
           ),
           const SizedBox(height: 12),
@@ -169,7 +176,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        parsed.amount == null ? '—' : formatMoney(parsed.amount!, account?.currency ?? 'IDR'),
+                        parsed.amount == null ? '-' : formatMoney(parsed.amount!, account?.currency ?? 'IDR'),
                         style: AppTheme.serif(size: 22, weight: FontWeight.w700, color: color),
                       ),
                       const SizedBox(height: 2),
@@ -177,14 +184,14 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
                         spacing: 6,
                         children: [
                           _MiniChip(
-                            label: categoryLabel(categories, categoryId, empty: 'Kategori?'),
+                            label: categoryLabel(categories, categoryId, empty: t.chooseCategory),
                             onTap: () async {
                               final id = await showCategoryPicker(context, type: parsed.type, selectedId: categoryId);
                               if (id != null) setState(() => _manualCategory = id);
                             },
                           ),
                           _MiniChip(
-                            label: account?.name ?? 'Dompet?',
+                            label: account?.name ?? t.chooseWallet,
                             onTap: () async {
                               final id = await showAccountPicker(context, ref, selectedId: accountId);
                               if (id != null) setState(() => _manualAccount = id);
@@ -200,7 +207,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
           ),
           if (presets.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text('Preset sekali tap', style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            Text(t.t('Sekali tap', 'One tap'), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
             const SizedBox(height: 8),
             SizedBox(
               height: 40,
@@ -215,7 +222,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
                     label: Text('${p.name} ${formatMoney(p.amount, accounts[p.accountId]?.currency ?? 'IDR', compact: true)}'),
                     onPressed: () async {
                       await MoneyActions(ref.read(databaseProvider)).recordPreset(p);
-                      await _done('${p.name} tercatat', p.type == 'income' ? '入' : '済');
+                      await _done(t.t('${p.name} dicatat', '${p.name} added'), p.type == 'income' ? '入' : '済');
                     },
                   );
                 },
@@ -246,7 +253,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
                       ),
                     );
                   },
-                  child: const Text('Form lengkap'),
+                  child: Text(t.t('Form lengkap', 'Full form')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -255,7 +262,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
                 child: FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: color),
                   onPressed: _saving ? null : _save,
-                  child: const Text('Simpan'),
+                  child: Text(t.save),
                 ),
               ),
             ],

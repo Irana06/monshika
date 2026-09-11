@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
 import '../accounts/accounts_screen.dart';
@@ -33,36 +34,37 @@ class _Item {
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
-  static final _groups = <(String, String, List<_Item>)>[
-    ('金', 'Keuangan', [
-      _Item('財', 'Dompet', WaColors.kin, (_) => const AccountsScreen()),
-      _Item('算', 'Budget', WaColors.yamabuki, (_) => const BudgetsScreen()),
-      _Item('夢', 'Target', WaColors.sakura, (_) => const GoalsScreen()),
-      _Item('借', 'Utang & Piutang', WaColors.asagi, (_) => const DebtsScreen()),
-      _Item('定', 'Berulang & Langganan', WaColors.ruri, (_) => const RecurringScreen()),
-      _Item('返', 'Cicilan', WaColors.momiji, (_) => const InstallmentsScreen()),
-      _Item('割', 'Split Bill', WaColors.shu, (_) => const SplitBillScreen()),
-      _Item('簿', 'Kakeibo', WaColors.matcha, (_) => const KakeiboScreen()),
-    ]),
-    ('整', 'Atur', [
-      _Item('類', 'Kategori', WaColors.fuji, (_) => const CategoriesScreen()),
-      _Item('札', 'Preset & Tag', WaColors.cha, (_) => const PresetsScreen()),
-      _Item('替', 'Mata Uang & Kurs', WaColors.wakatake, (_) => const CurrencyScreen()),
-      _Item('窓', 'Widget Beranda', WaColors.ai, (_) => const WidgetsGuideScreen()),
-    ]),
-    ('蔵', 'Data & Aplikasi', [
-      _Item('蔵', 'Backup & Export', WaColors.kohaku, (_) => const BackupScreen()),
-      _Item('設', 'Pengaturan', WaColors.nezumi, (_) => const SettingsScreen()),
-    ]),
-  ];
+  List<(String, String, List<_Item>)> _groups(S t) => [
+        ('金', t.t('Keuangan', 'Money'), [
+          _Item('財', t.wallets, WaColors.kin, (_) => const AccountsScreen()),
+          _Item('算', 'Budget', WaColors.yamabuki, (_) => const BudgetsScreen()),
+          _Item('夢', t.t('Target', 'Goals'), WaColors.sakura, (_) => const GoalsScreen()),
+          _Item('借', t.t('Utang & piutang', 'Debts'), WaColors.asagi, (_) => const DebtsScreen()),
+          _Item('定', t.t('Rutin & langganan', 'Recurring'), WaColors.ruri, (_) => const RecurringScreen()),
+          _Item('返', t.t('Cicilan', 'Installments'), WaColors.momiji, (_) => const InstallmentsScreen()),
+          _Item('割', t.t('Bagi tagihan', 'Split bill'), WaColors.shu, (_) => const SplitBillScreen()),
+          _Item('簿', 'Kakeibo', WaColors.matcha, (_) => const KakeiboScreen()),
+        ]),
+        ('整', t.t('Atur', 'Setup'), [
+          _Item('類', t.categories, WaColors.fuji, (_) => const CategoriesScreen()),
+          _Item('札', t.t('Preset & tag', 'Presets & tags'), WaColors.cha, (_) => const PresetsScreen()),
+          _Item('替', t.t('Mata uang', 'Currencies'), WaColors.wakatake, (_) => const CurrencyScreen()),
+          _Item('窓', 'Widget', WaColors.ai, (_) => const WidgetsGuideScreen()),
+        ]),
+        ('蔵', t.t('Data & aplikasi', 'Data & app'), [
+          _Item('蔵', t.t('Backup & ekspor', 'Backup & export'), WaColors.kohaku, (_) => const BackupScreen()),
+          _Item('設', t.t('Pengaturan', 'Settings'), WaColors.nezumi, (_) => const SettingsScreen()),
+        ]),
+      ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final streak = ref.watch(streakProvider).value ?? 0;
     final version = ref.watch(appVersionProvider).value;
     return Scaffold(
-      appBar: AppBar(title: const Text('Lainnya · その他')),
+      appBar: AppBar(title: Text(t.withJp('その他', t.t('Lainnya', 'More')))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
         children: [
@@ -75,16 +77,18 @@ class MoreScreen extends ConsumerWidget {
                   progress: (streak / 30).clamp(0.05, 1),
                   size: 64,
                   color: WaColors.beni,
-                  child: Text('鹿', style: AppTheme.serif(size: 26, weight: FontWeight.w700)),
+                  child: const GlyphIcon('鹿', color: WaColors.washi, size: 26),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s.userName.isEmpty ? 'Pengguna Monshika' : s.userName, style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+                      Text(s.userName.isEmpty ? t.t('Halo!', 'Hi there!') : s.userName, style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
                       Text(
-                        streak == 0 ? 'Mulai catat hari ini untuk membangun streak' : '連続 $streak hari berturut-turut mencatat 🔥',
+                        streak == 0
+                            ? t.t('Catat sesuatu hari ini untuk mulai streak', 'Log something today to start a streak')
+                            : t.t('Sudah $streak hari berturut-turut mencatat 🔥', '$streak days in a row 🔥'),
                         style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                       ),
                       if (s.driveEmail != null)
@@ -96,7 +100,7 @@ class MoreScreen extends ConsumerWidget {
             ),
           ),
           const UpdateBanner(),
-          for (final g in _groups) ...[
+          for (final g in _groups(t)) ...[
             SectionHeader(title: g.$2, jp: g.$1),
             GridView.count(
               crossAxisCount: 4,
@@ -125,7 +129,7 @@ class MoreScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           Center(
             child: Text(
-              'Monshika · 紋鹿${version == null ? '' : ' · v$version'}',
+              '${t.jp ? 'Monshika · 紋鹿' : 'Monshika'}${version == null ? '' : ' · v$version'}',
               style: AppTheme.serif(size: 12, color: WaColors.washiFaint),
             ),
           ),

@@ -17,7 +17,7 @@
         android:background="@drawable/widget_btn_expense"
         android:fontFamily="serif"
         android:gravity="center"
-        android:text="− 出"
+        android:text="-"
         android:textColor="#E0605A"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -31,7 +31,7 @@
         android:background="@drawable/widget_btn_neutral"
         android:fontFamily="serif"
         android:gravity="center"
-        android:text="速"
+        android:text="⚡"
         android:textColor="#C9A45C"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -45,7 +45,7 @@
         android:background="@drawable/widget_btn_income"
         android:fontFamily="serif"
         android:gravity="center"
-        android:text="+ 入"
+        android:text="+"
         android:textColor="#9CC48F"
         android:textSize="18sp"
         android:textStyle="bold" />

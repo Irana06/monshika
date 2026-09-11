@@ -7,6 +7,7 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../common/pickers.dart';
 import 'transaction_form_screen.dart';
@@ -20,6 +21,7 @@ class TransactionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = S.of(context);
     final accounts = ref.watch(accountMapProvider);
     final categories = ref.watch(categoryMapProvider);
     final tags = {for (final t in ref.watch(tagsProvider).value ?? const <Tag>[]) t.id: t};
@@ -35,10 +37,11 @@ class TransactionTile extends ConsumerWidget {
     final title = tx.note.isNotEmpty
         ? tx.note
         : isTransfer
-            ? 'Transfer'
-            : (cat?.name ?? 'Tanpa kategori');
+            ? s.transfer
+            : (cat == null ? s.noCategory : categoryName(cat, s));
     final subtitleParts = <String>[
-      if (isTransfer) '${account?.name ?? '?'} → ${accounts[tx.toAccountId]?.name ?? '?'}'
+      if (isTransfer)
+        '${account?.name ?? '?'} → ${accounts[tx.toAccountId]?.name ?? '?'}'
       else ...[
         if (tx.note.isNotEmpty) categoryLabel(categories, tx.categoryId),
         account?.name ?? '?',
@@ -47,8 +50,7 @@ class TransactionTile extends ConsumerWidget {
     ];
 
     return InkWell(
-      onTap: onTap ??
-          () => Navigator.push(context, MaterialPageRoute(builder: (_) => TransactionFormScreen(existing: tx))),
+      onTap: onTap ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TransactionFormScreen(existing: tx))),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -62,10 +64,7 @@ class TransactionTile extends ConsumerWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTheme.sans(size: 14.5, weight: FontWeight.w600)),
+                        child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.sans(size: 14.5, weight: FontWeight.w600)),
                       ),
                       if (tx.recurringId != null) ...[
                         const SizedBox(width: 4),
@@ -121,7 +120,7 @@ class TransactionTile extends ConsumerWidget {
                   ),
                 ),
                 if (tx.fee > 0)
-                  Text('biaya ${formatMoney(tx.fee, account?.currency ?? 'IDR', hidden: hidden)}',
+                  Text('${s.t('biaya', 'fee')} ${formatMoney(tx.fee, account?.currency ?? 'IDR', hidden: hidden)}',
                       style: AppTheme.sans(size: 11, color: WaColors.washiMuted)),
               ],
             ),
@@ -144,6 +143,7 @@ class DayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
       child: Row(
@@ -164,7 +164,10 @@ class DayHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(fmtRelativeDay(date), style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
-                Text('${kJpWeekdays[date.weekday - 1]}曜日', style: AppTheme.serif(size: 11, color: WaColors.washiMuted)),
+                Text(
+                  s.jp ? '${weekdayShort(date.weekday)}曜日' : fmtMonthYear(date),
+                  style: AppTheme.sans(size: 11, color: WaColors.washiMuted),
+                ),
               ],
             ),
           ),

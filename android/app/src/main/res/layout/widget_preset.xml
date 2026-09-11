@@ -76,7 +76,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="札 Buat preset di Monshika"
+        android:text="Add presets in Monshika"
         android:textColor="#9A948A"
         android:textSize="12sp"
         android:visibility="gone" />

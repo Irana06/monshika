@@ -152,8 +152,9 @@ FROM accounts a
         await (delete(categories)..where((c) => c.id.equals(id))).go();
       });
 
-  Future<TxCategory?> findSystemCategory(String name) =>
-      (select(categories)..where((c) => c.isSystem.equals(true) & c.name.equals(name))).getSingleOrNull();
+  /// Kategori sistem dicari dari glyph-nya supaya tidak bergantung pada bahasa.
+  Future<TxCategory?> findSystemCategory(String glyph) async =>
+      (await (select(categories)..where((c) => c.isSystem.equals(true) & c.icon.equals(glyph))).get()).firstOrNull;
 
   // ---------------------------------------------------------------------------
   // Transactions

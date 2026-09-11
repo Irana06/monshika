@@ -19,7 +19,8 @@
             android:layout_weight="1"
             android:fontFamily="serif"
             android:singleLine="true"
-            android:text="図 7 hari"
+            android:id="@+id/title"
+            android:text="7 days"
             android:textColor="#C9A45C"
             android:textSize="12sp" />
 
@@ -39,7 +40,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="2dp"
         android:layout_weight="1"
-        android:contentDescription="Grafik 7 hari"
+        android:contentDescription="7 day chart"
         android:scaleType="fitCenter" />
 
     <TextView
@@ -48,7 +49,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="Buka Monshika untuk memuat grafik"
+        android:text="Open Monshika to load the chart"
         android:textColor="#9A948A"
         android:textSize="11sp"
         android:visibility="gone" />

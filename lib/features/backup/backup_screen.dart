@@ -13,6 +13,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/dates.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/backup_service.dart';
 import '../../services/drive_service.dart';
@@ -37,6 +38,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   String _rangeKey = 'this_month';
   DateRange? _custom;
 
+  S get _t => S.of(context);
+
+  String _stampLong(DateTime d) => DateFormat('d MMM yyyy, HH:mm', _t.dateLocale).format(d);
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +63,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     } on DriveNotConfigured catch (e) {
       if (mounted) showSnack(context, e.toString());
     } catch (e) {
-      if (mounted) showSnack(context, 'Gagal: $e');
+      if (mounted) showSnack(context, _t.t('Gagal: $e', 'Failed: $e'));
     } finally {
       if (mounted) {
         setState(() {
@@ -74,30 +79,32 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       final files = await DriveService.instance.list(interactive: interactive);
       if (mounted) setState(() => _driveFiles = files);
     } catch (e) {
-      if (interactive && mounted) showSnack(context, 'Tidak bisa membaca Google Drive: $e');
+      if (interactive && mounted) showSnack(context, _t.t('Google Drive tidak bisa dibuka: $e', "Couldn't read Google Drive: $e"));
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Restore
+  // Pulihkan
   // ---------------------------------------------------------------------------
 
-  Future<String?> _askPassword({String title = 'Sandi backup'}) async {
+  Future<String?> _askPassword({String? title}) async {
+    final t = _t;
     final ctrl = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(controller: ctrl, obscureText: true, autofocus: true, decoration: const InputDecoration(hintText: 'Sandi')),
+        title: Text(title ?? t.t('Sandi backup', 'Backup password')),
+        content: TextField(controller: ctrl, obscureText: true, autofocus: true, decoration: InputDecoration(hintText: t.t('Sandi', 'Password'))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('OK')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(t.ok)),
         ],
       ),
     );
   }
 
   Future<void> _restoreBytes(Uint8List bytes) async {
+    final t = _t;
     Map<String, dynamic> json;
     String? password;
     if (BackupService.isEncrypted(bytes)) {
@@ -108,10 +115,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         json = await BackupService.read(bytes, password: password);
         break;
       } on BackupPasswordRequired {
-        password = await _askPassword(title: 'Backup terenkripsi — masukkan sandi');
+        password = await _askPassword(title: t.t('Backup ini dikunci sandi', 'This backup is password protected'));
         if (password == null) return;
       } on BackupWrongPassword {
-        password = await _askPassword(title: 'Sandi salah, coba lagi');
+        password = await _askPassword(title: t.t('Sandinya salah, coba lagi', 'Wrong password, try again'));
         if (password == null) return;
       }
     }
@@ -119,10 +126,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     if (!mounted) return;
     final ok = await confirmDialog(
       context,
-      title: 'Pulihkan backup?',
-      message: 'Backup ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(info.createdAt)} berisi ${info.accounts} dompet '
-          'dan ${info.transactions} transaksi.\n\nSemua data di HP ini akan DIGANTI dengan isi backup.',
-      confirm: 'Pulihkan',
+      title: t.t('Pulihkan backup ini?', 'Restore this backup?'),
+      message: t.t(
+        'Backup tanggal ${_stampLong(info.createdAt)} berisi ${info.accounts} dompet dan ${info.transactions} transaksi.\n\nSemua data di HP ini akan diganti dengan isi backup.',
+        'Backup from ${_stampLong(info.createdAt)} has ${info.accounts} wallets and ${info.transactions} transactions.\n\nEverything on this phone will be replaced with it.',
+      ),
+      confirm: t.t('Pulihkan', 'Restore'),
     );
     if (!ok) return;
     final db = ref.read(databaseProvider);
@@ -130,7 +139,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     db.refreshAllStreams();
     await ref.read(settingsProvider.notifier).reload();
     if (!mounted) return;
-    await showHanko(context, glyph: '復', label: 'Data dipulihkan');
+    await showHanko(context, glyph: '復', label: t.t('Data sudah dipulihkan', 'Data restored'));
     if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
@@ -139,20 +148,21 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   }
 
   Future<void> _deliver(Uint8List bytes, String name, String mime, {bool printable = false}) async {
+    final t = _t;
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.save_alt), title: const Text('Simpan ke perangkat'), onTap: () => Navigator.pop(ctx, 'save')),
-          ListTile(leading: const Icon(Icons.share), title: const Text('Bagikan (WhatsApp, email, Drive…)'), onTap: () => Navigator.pop(ctx, 'share')),
-          if (printable) ListTile(leading: const Icon(Icons.print), title: const Text('Pratinjau / cetak'), onTap: () => Navigator.pop(ctx, 'print')),
+          ListTile(leading: const Icon(Icons.save_alt), title: Text(t.t('Simpan ke HP', 'Save to device')), onTap: () => Navigator.pop(ctx, 'save')),
+          ListTile(leading: const Icon(Icons.share), title: Text(t.t('Bagikan (WhatsApp, email, Drive)', 'Share (email, messaging, Drive)')), onTap: () => Navigator.pop(ctx, 'share')),
+          if (printable) ListTile(leading: const Icon(Icons.print), title: Text(t.t('Lihat atau cetak', 'Preview or print')), onTap: () => Navigator.pop(ctx, 'print')),
         ]),
       ),
     );
     switch (action) {
       case 'save':
         final uri = await FilePicker.saveFile(fileName: name, bytes: bytes, mimeType: mime);
-        if (uri != null && mounted) showSnack(context, 'Tersimpan: $name');
+        if (uri != null && mounted) showSnack(context, t.t('Tersimpan: $name', 'Saved: $name'));
       case 'share':
         await _share(bytes, name, mime);
       case 'print':
@@ -178,11 +188,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     final s = ref.watch(settingsProvider);
     final db = ref.watch(databaseProvider);
+    final muted = AppTheme.sans(size: 12, color: WaColors.washiMuted);
+    final templateRow = t.t(
+      '2026-09-10,12:30,Pengeluaran,Makan & minum,,Tunai,,25000,IDR,,,Makan siang,Warteg,',
+      '2026-09-10,12:30,Expense,Food & drinks,,Cash,,12.5,USD,,,Lunch,Deli,',
+    );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.fromOnboarding ? 'Pulihkan Data' : 'Backup & Export · 保管')),
+      appBar: AppBar(title: Text(widget.fromOnboarding ? t.t('Pulihkan data', 'Restore data') : t.withJp('保管', t.t('Backup & ekspor', 'Backup & export')))),
       body: Stack(
         children: [
           ListView(
@@ -192,23 +208,26 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               if (!GoogleConfig.isConfigured)
                 WaCard(
                   child: Text(
-                    'Backup Google Drive belum aktif di build ini (Client ID OAuth belum diisi). Gunakan backup file lokal di bawah.',
+                    t.t('Backup ke Google Drive belum tersedia di versi ini. Pakai backup file di bawah dulu.',
+                        "Google Drive backup isn't available in this build. Use a backup file below instead."),
                     style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
                   ),
                 )
               else if (s.driveEmail == null)
                 WaCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Simpan backup terenkripsi ke folder tersembunyi khusus Monshika di Google Drive-mu. '
-                        'Monshika tidak bisa melihat file lain di Drive.',
-                        style: AppTheme.sans(size: 13, color: WaColors.washiMuted)),
+                    Text(
+                      t.t('Backup disimpan terenkripsi di folder tersembunyi khusus Monshika di Google Drive-mu. Monshika tidak bisa melihat file lain.',
+                          "Backups are saved encrypted in a hidden Monshika folder on your Google Drive. Monshika can't see your other files."),
+                      style: AppTheme.sans(size: 13, color: WaColors.washiMuted),
+                    ),
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       icon: const Icon(Icons.login),
-                      label: const Text('Login dengan Google'),
+                      label: Text(t.t('Masuk dengan Google', 'Sign in with Google')),
                       onPressed: _busy
                           ? null
-                          : () => _run('Menghubungkan…', () async {
+                          : () => _run(t.t('Menghubungkan', 'Connecting'), () async {
                                 final acc = await DriveService.instance.signIn();
                                 await ref.read(settingsProvider.notifier).setDriveEmail(acc.email);
                                 await _loadDrive();
@@ -230,29 +249,29 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           await ref.read(settingsProvider.notifier).setAutoBackup('off');
                           setState(() => _driveFiles = null);
                         },
-                        child: const Text('Putuskan'),
+                        child: Text(t.t('Putuskan', 'Disconnect')),
                       ),
                     ]),
                     Text(
                       s.lastBackupAt == null
-                          ? 'Belum pernah backup'
-                          : 'Backup terakhir ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(s.lastBackupAt!)}',
-                      style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                          ? t.t('Belum pernah backup', 'No backups yet')
+                          : t.t('Backup terakhir ${_stampLong(s.lastBackupAt!)}', 'Last backup ${_stampLong(s.lastBackupAt!)}'),
+                      style: muted,
                     ),
                     const SizedBox(height: 12),
                     Row(children: [
                       Expanded(
                         child: FilledButton.icon(
                           icon: const Icon(Icons.cloud_upload_outlined),
-                          label: const Text('Backup sekarang'),
+                          label: Text(t.t('Backup sekarang', 'Back up now')),
                           onPressed: _busy
                               ? null
-                              : () => _run('Mengunggah backup…', () async {
+                              : () => _run(t.t('Mengunggah backup', 'Uploading backup'), () async {
                                     final bytes = await BackupService.create(db, password: await SecurityService.instance.getBackupPassword());
                                     await DriveService.instance.upload(bytes, BackupService.fileName(), interactive: true);
                                     await ref.read(settingsProvider.notifier).setLastBackupAt(DateTime.now());
                                     await _loadDrive();
-                                    if (mounted) await showHanko(context, glyph: '蔵', label: 'Backup tersimpan di Drive');
+                                    if (mounted) await showHanko(context, glyph: '蔵', label: t.t('Backup tersimpan di Drive', 'Backup saved to Drive'));
                                   }),
                         ),
                       ),
@@ -260,49 +279,50 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                     const SizedBox(height: 8),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Backup otomatis'),
+                      title: Text(t.t('Backup otomatis', 'Auto backup')),
                       trailing: DropdownButton<String>(
                         value: s.autoBackup,
-                        items: const [
-                          DropdownMenuItem(value: 'off', child: Text('Mati')),
-                          DropdownMenuItem(value: 'daily', child: Text('Harian')),
-                          DropdownMenuItem(value: 'weekly', child: Text('Mingguan')),
+                        underline: const SizedBox.shrink(),
+                        items: [
+                          DropdownMenuItem(value: 'off', child: Text(t.t('Mati', 'Off'))),
+                          DropdownMenuItem(value: 'daily', child: Text(t.t('Tiap hari', 'Daily'))),
+                          DropdownMenuItem(value: 'weekly', child: Text(t.t('Tiap minggu', 'Weekly'))),
                         ],
                         onChanged: (v) => ref.read(settingsProvider.notifier).setAutoBackup(v ?? 'off'),
                       ),
                     ),
                     const Divider(),
                     Row(children: [
-                      Text('File di Drive', style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
+                      Text(t.t('File di Drive', 'Files on Drive'), style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
                       const Spacer(),
-                      IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: () => _run('Memuat…', () => _loadDrive())),
+                      IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: () => _run(t.t('Memuat', 'Loading'), () => _loadDrive())),
                     ]),
                     if (_driveFiles == null)
-                      Text('Ketuk muat ulang untuk melihat daftar backup', style: AppTheme.sans(size: 12, color: WaColors.washiMuted))
+                      Text(t.t('Ketuk tombol muat ulang untuk melihat daftar backup', 'Tap refresh to see your backups'), style: muted)
                     else if (_driveFiles!.isEmpty)
-                      Text('Belum ada backup', style: AppTheme.sans(size: 12, color: WaColors.washiMuted))
+                      Text(t.t('Belum ada backup', 'No backups yet'), style: muted)
                     else
                       for (final f in _driveFiles!)
                         ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.inventory_2_outlined),
-                          title: Text(DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(f.createdAt.toLocal())),
+                          title: Text(_stampLong(f.createdAt.toLocal())),
                           subtitle: Text('${(f.size / 1024).toStringAsFixed(1)} KB'),
                           trailing: PopupMenuButton<String>(
                             onSelected: (v) {
                               if (v == 'restore') {
-                                _run('Mengunduh…', () async => _restoreBytes(await DriveService.instance.download(f.id, interactive: true)));
+                                _run(t.t('Mengunduh', 'Downloading'), () async => _restoreBytes(await DriveService.instance.download(f.id, interactive: true)));
                               } else {
-                                _run('Menghapus…', () async {
+                                _run(t.t('Menghapus', 'Deleting'), () async {
                                   await DriveService.instance.delete(f.id);
                                   await _loadDrive();
                                 });
                               }
                             },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'restore', child: Text('Pulihkan')),
-                              PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                            itemBuilder: (_) => [
+                              PopupMenuItem(value: 'restore', child: Text(t.t('Pulihkan', 'Restore'))),
+                              PopupMenuItem(value: 'delete', child: Text(t.delete)),
                             ],
                           ),
                         ),
@@ -312,17 +332,20 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               WaCard(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: SwitchListTile(
-                  title: const Text('Enkripsi backup dengan sandi'),
+                  title: Text(t.t('Kunci backup dengan sandi', 'Protect backups with a password')),
                   subtitle: Text(
-                    _hasPassword ? 'AES-256. Simpan sandinya — tanpa sandi backup tidak bisa dibuka.' : 'Backup tidak dienkripsi sandi',
-                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                    _hasPassword
+                        ? t.t('Pakai AES-256. Jangan sampai lupa sandinya, tanpa sandi backup tidak bisa dibuka.',
+                            "Uses AES-256. Don't lose the password, the backup can't be opened without it.")
+                        : t.t('Backup tidak dikunci sandi', 'Backups are not password protected'),
+                    style: muted,
                   ),
                   value: _hasPassword,
                   onChanged: (v) async {
                     if (v) {
-                      final p = await _askPassword(title: 'Buat sandi backup');
+                      final p = await _askPassword(title: t.t('Buat sandi backup', 'Create a backup password'));
                       if (p == null || p.length < 4) {
-                        if (mounted && p != null) showSnack(context, 'Sandi minimal 4 karakter');
+                        if (mounted && p != null) showSnack(context, t.t('Sandi paling sedikit 4 karakter', 'Password needs at least 4 characters'));
                         return;
                       }
                       await SecurityService.instance.setBackupPassword(p);
@@ -333,27 +356,27 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   },
                 ),
               ),
-              const SectionHeader(title: 'File lokal', jp: '箱'),
+              SectionHeader(title: t.t('File backup', 'Backup file'), jp: '箱'),
               WaCard(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Column(children: [
                   ListTile(
                     leading: const Icon(Icons.save_alt),
-                    title: const Text('Buat file backup (.msk)'),
-                    subtitle: const Text('Simpan ke perangkat atau bagikan'),
+                    title: Text(t.t('Buat file backup (.msk)', 'Create backup file (.msk)')),
+                    subtitle: Text(t.t('Simpan ke HP atau bagikan', 'Save to device or share')),
                     onTap: _busy
                         ? null
-                        : () => _run('Membuat backup…', () async {
+                        : () => _run(t.t('Membuat backup', 'Creating backup'), () async {
                               final bytes = await BackupService.create(db, password: await SecurityService.instance.getBackupPassword());
                               await _deliver(bytes, BackupService.fileName(), 'application/octet-stream');
                             }),
                   ),
                   ListTile(
                     leading: const Icon(Icons.restore),
-                    title: const Text('Pulihkan dari file backup'),
+                    title: Text(t.t('Pulihkan dari file backup', 'Restore from backup file')),
                     onTap: _busy
                         ? null
-                        : () => _run('Membaca file…', () async {
+                        : () => _run(t.t('Membaca file', 'Reading file'), () async {
                               final file = await FilePicker.pickFile();
                               if (file == null) return;
                               await _restoreBytes(await file.readAsBytes());
@@ -362,14 +385,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 ]),
               ),
               if (!widget.fromOnboarding) ...[
-                const SectionHeader(title: 'Export laporan', jp: '出'),
+                SectionHeader(title: t.t('Ekspor laporan', 'Export report'), jp: '出'),
                 Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final e in const {
-                    'this_month': 'Bulan ini',
-                    'last_month': 'Bulan lalu',
-                    'this_year': 'Tahun ini',
-                    'all': 'Semua',
-                    'custom': 'Pilih tanggal',
+                  for (final e in {
+                    'this_month': t.t('Bulan ini', 'This month'),
+                    'last_month': t.t('Bulan lalu', 'Last month'),
+                    'this_year': t.t('Tahun ini', 'This year'),
+                    'all': t.all,
+                    'custom': t.t('Pilih tanggal', 'Pick dates'),
                   }.entries)
                     ChoiceChip(
                       label: Text(e.key == 'custom' && _custom != null ? fmtRange(_custom!) : e.value),
@@ -392,7 +415,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       label: const Text('CSV'),
                       onPressed: _busy
                           ? null
-                          : () => _run('Membuat CSV…', () async {
+                          : () => _run(t.t('Membuat CSV', 'Creating CSV'), () async {
                                 final bytes = await ExportService(db).csvBytes(_exportRange());
                                 await _deliver(bytes, 'monshika-${_stamp()}.csv', 'text/csv');
                               }),
@@ -405,7 +428,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       label: const Text('Excel'),
                       onPressed: _busy
                           ? null
-                          : () => _run('Membuat Excel…', () async {
+                          : () => _run(t.t('Membuat Excel', 'Creating Excel'), () async {
                                 final bytes = await ExportService(db).excelBytes(_exportRange(), baseCurrency: s.baseCurrency, rates: ref.read(ratesProvider));
                                 await _deliver(bytes, 'monshika-${_stamp()}.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
                               }),
@@ -418,71 +441,73 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       label: const Text('PDF'),
                       onPressed: _busy
                           ? null
-                          : () => _run('Membuat PDF…', () async {
+                          : () => _run(t.t('Membuat PDF', 'Creating PDF'), () async {
                                 final bytes = await ExportService(db).pdfBytes(_exportRange(),
                                     baseCurrency: s.baseCurrency, rates: ref.read(ratesProvider), userName: s.userName);
-                                await _deliver(bytes, 'monshika-laporan-${_stamp()}.pdf', 'application/pdf', printable: true);
+                                await _deliver(bytes, 'monshika-${t.t('laporan', 'report')}-${_stamp()}.pdf', 'application/pdf', printable: true);
                               }),
                     ),
                   ),
                 ]),
-                const SectionHeader(title: 'Import transaksi', jp: '入'),
+                SectionHeader(title: t.t('Impor transaksi', 'Import transactions'), jp: '入'),
                 WaCard(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Column(children: [
                     ListTile(
                       leading: const Icon(Icons.upload_file),
-                      title: const Text('Import dari CSV'),
-                      subtitle: const Text('Format sama dengan hasil export CSV'),
+                      title: Text(t.t('Impor dari CSV', 'Import from CSV')),
+                      subtitle: Text(t.t('Formatnya sama dengan hasil ekspor CSV', 'Same format as the CSV export')),
                       onTap: _busy
                           ? null
                           : () async {
                               final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: const ['csv']);
                               if (file == null || !context.mounted) return;
-                              final accountId = await showAccountPicker(context, ref, title: 'Dompet cadangan (jika nama dompet tidak dikenali)');
+                              final accountId = await showAccountPicker(context, ref,
+                                  title: t.t('Pakai dompet ini kalau nama dompet di file tidak dikenali', "Use this wallet when a wallet name isn't recognized"));
                               if (accountId == null) return;
-                              await _run('Mengimpor…', () async {
+                              await _run(t.t('Mengimpor', 'Importing'), () async {
                                 final n = await ExportService(db).importCsv(await file.readAsBytes(), fallbackAccountId: accountId);
-                                if (mounted) showSnack(context, '$n transaksi berhasil diimpor');
+                                if (mounted) showSnack(context, t.t('$n transaksi berhasil diimpor', '$n transactions imported'));
                               });
                             },
                     ),
                     ListTile(
                       leading: const Icon(Icons.description_outlined),
-                      title: const Text('Template CSV'),
+                      title: Text(t.t('Contoh file CSV', 'CSV template')),
                       onTap: () => _share(
-                        Uint8List.fromList(utf8.encode('${ExportService.csvHeader.join(',')}\n2026-09-10,12:30,Pengeluaran,Makan & Minum,,Tunai,,25000,IDR,,,Makan siang,Warteg,\n')),
+                        Uint8List.fromList(utf8.encode('${ExportService(db).csvHeader.join(',')}\n$templateRow\n')),
                         'monshika-template.csv',
                         'text/csv',
                       ),
                     ),
                   ]),
                 ),
-                const SectionHeader(title: 'Zona bahaya', jp: '危'),
+                SectionHeader(title: t.t('Hati-hati', 'Danger zone'), jp: '危'),
                 WaCard(
                   borderColor: WaColors.expense.withValues(alpha: 0.4),
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
                     leading: const Icon(Icons.delete_forever, color: WaColors.expense),
-                    title: const Text('Hapus semua data', style: TextStyle(color: WaColors.expense)),
-                    subtitle: const Text('Kategori bawaan akan dibuat ulang'),
+                    title: Text(t.t('Hapus semua data', 'Delete all data'), style: const TextStyle(color: WaColors.expense)),
+                    subtitle: Text(t.t('Kategori bawaan akan dibuat lagi', 'Default categories will be recreated')),
                     onTap: () async {
+                      final word = t.t('HAPUS', 'DELETE');
                       final ctrl = TextEditingController();
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: const Text('Hapus semua data?'),
+                          title: Text(t.t('Hapus semua data?', 'Delete all data?')),
                           content: Column(mainAxisSize: MainAxisSize.min, children: [
-                            const Text('Tindakan ini tidak bisa dibatalkan. Ketik HAPUS untuk melanjutkan.'),
+                            Text(t.t('Ini tidak bisa dibatalkan. Ketik $word untuk lanjut.', "This can't be undone. Type $word to continue.")),
                             const SizedBox(height: 12),
                             TextField(controller: ctrl, autofocus: true),
                           ]),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.cancel)),
                             FilledButton(
                               style: FilledButton.styleFrom(backgroundColor: WaColors.expense),
-                              onPressed: () => Navigator.pop(ctx, ctrl.text.trim().toUpperCase() == 'HAPUS'),
-                              child: const Text('Hapus'),
+                              onPressed: () => Navigator.pop(ctx, ctrl.text.trim().toUpperCase() == word),
+                              child: Text(t.delete),
                             ),
                           ],
                         ),
@@ -506,7 +531,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     const CircularProgressIndicator(),
                     const SizedBox(height: 12),
-                    Text(_busyLabel ?? 'Memproses…', style: AppTheme.sans()),
+                    Text(_busyLabel ?? t.t('Sebentar', 'One moment'), style: AppTheme.sans()),
                   ]),
                 ),
               ),

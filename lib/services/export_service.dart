@@ -12,19 +12,35 @@ import '../core/constants/kanji_icons.dart';
 import '../core/utils/dates.dart';
 import '../core/utils/money.dart';
 import '../data/database/database.dart';
+import '../l10n/strings.dart';
 import 'finance.dart';
 
-const _typeLabel = {'income': 'Pemasukan', 'expense': 'Pengeluaran', 'transfer': 'Transfer'};
+/// Kolom CSV: (kunci, Indonesia, Inggris). Import menerima kedua bahasa.
+const _columns = [
+  ('date', 'Tanggal', 'Date'),
+  ('time', 'Jam', 'Time'),
+  ('type', 'Tipe', 'Type'),
+  ('category', 'Kategori', 'Category'),
+  ('subcategory', 'Sub-kategori', 'Subcategory'),
+  ('account', 'Dompet', 'Wallet'),
+  ('toAccount', 'Ke Dompet', 'To wallet'),
+  ('amount', 'Nominal', 'Amount'),
+  ('currency', 'Mata Uang', 'Currency'),
+  ('toAmount', 'Nominal Tujuan', 'Received amount'),
+  ('fee', 'Biaya', 'Fee'),
+  ('note', 'Catatan', 'Note'),
+  ('payee', 'Penerima', 'Payee'),
+  ('tags', 'Tag', 'Tags'),
+];
 
 class ExportService {
   ExportService(this.db);
 
   final AppDatabase db;
 
-  static const csvHeader = [
-    'Tanggal', 'Jam', 'Tipe', 'Kategori', 'Sub-kategori', 'Dompet', 'Ke Dompet', 'Nominal', 'Mata Uang',
-    'Nominal Tujuan', 'Biaya', 'Catatan', 'Penerima', 'Tag',
-  ];
+  S get _s => S.current;
+
+  List<String> get csvHeader => [for (final c in _columns) _s.t(c.$2, c.$3)];
 
   Future<_Ctx> _ctx(DateRange range) async {
     final accounts = {for (final a in await db.getAccounts(includeArchived: true)) a.id: a};
@@ -50,7 +66,7 @@ class ExportService {
           return <Object?>[
             DateFormat('yyyy-MM-dd').format(t.date),
             DateFormat('HH:mm').format(t.date),
-            _typeLabel[t.type] ?? t.type,
+            _s.typeLabel(t.type),
             parent?.name ?? cat?.name ?? '',
             parent != null ? cat?.name ?? '' : '',
             c.accounts[t.accountId]?.name ?? '',
@@ -76,7 +92,7 @@ class ExportService {
   Future<Uint8List> excelBytes(DateRange range, {required String baseCurrency, required Map<String, double> rates}) async {
     final c = await _ctx(range);
     final book = xl.Excel.createExcel();
-    const sheetName = 'Transaksi';
+    final sheetName = _s.t('Transaksi', 'Transactions');
     book.rename(book.getDefaultSheet() ?? 'Sheet1', sheetName);
     for (final row in _rows(c)) {
       book.appendRow(sheetName, row.map<xl.CellValue?>((v) {
@@ -93,28 +109,29 @@ class ExportService {
       rates: rates,
       baseCurrency: baseCurrency,
     );
-    const summary = 'Ringkasan';
+    final summary = _s.t('Ringkasan', 'Summary');
     final s = f.summarize(c.txs);
-    book.appendRow(summary, [xl.TextCellValue('Periode'), xl.TextCellValue(fmtRange(range))]);
-    book.appendRow(summary, [xl.TextCellValue('Mata uang dasar'), xl.TextCellValue(baseCurrency)]);
-    book.appendRow(summary, [xl.TextCellValue('Pemasukan'), xl.DoubleCellValue(s.income)]);
-    book.appendRow(summary, [xl.TextCellValue('Pengeluaran'), xl.DoubleCellValue(s.expense)]);
-    book.appendRow(summary, [xl.TextCellValue('Selisih'), xl.DoubleCellValue(s.income - s.expense)]);
-    book.appendRow(summary, [xl.TextCellValue('')]);
-    book.appendRow(summary, [xl.TextCellValue('Kategori pengeluaran'), xl.TextCellValue('Total')]);
+    xl.TextCellValue tx(String v) => xl.TextCellValue(v);
+    book.appendRow(summary, [tx(_s.t('Periode', 'Period')), tx(fmtRange(range))]);
+    book.appendRow(summary, [tx(_s.t('Mata uang utama', 'Main currency')), tx(baseCurrency)]);
+    book.appendRow(summary, [tx(_s.income), xl.DoubleCellValue(s.income)]);
+    book.appendRow(summary, [tx(_s.expense), xl.DoubleCellValue(s.expense)]);
+    book.appendRow(summary, [tx(_s.t('Selisih', 'Net')), xl.DoubleCellValue(s.income - s.expense)]);
+    book.appendRow(summary, [tx('')]);
+    book.appendRow(summary, [tx(_s.t('Kategori pengeluaran', 'Expense category')), tx('Total')]);
     for (final e in f.breakdown(c.txs, 'expense')) {
       book.appendRow(summary, [
-        xl.TextCellValue(e.key == null ? 'Tanpa kategori' : c.categories[e.key]?.name ?? '-'),
+        tx(e.key == null ? _s.noCategory : c.categories[e.key]?.name ?? '-'),
         xl.DoubleCellValue(e.value),
       ]);
     }
-    book.appendRow(summary, [xl.TextCellValue('')]);
-    book.appendRow(summary, [xl.TextCellValue('Dompet'), xl.TextCellValue('Saldo'), xl.TextCellValue('Mata uang')]);
+    book.appendRow(summary, [tx('')]);
+    book.appendRow(summary, [tx(_s.wallet), tx(_s.t('Saldo', 'Balance')), tx(_s.currency)]);
     for (final a in c.accounts.values.where((a) => !a.archived)) {
       book.appendRow(summary, [
-        xl.TextCellValue(a.name),
+        tx(a.name),
         xl.DoubleCellValue(f.accountBalance(a.id)),
-        xl.TextCellValue(a.currency),
+        tx(a.currency),
       ]);
     }
     return Uint8List.fromList(book.encode() ?? const []);
@@ -153,7 +170,7 @@ class ExportService {
           ),
         );
 
-    final doc = pw.Document(title: 'Laporan Monshika', author: userName.isEmpty ? 'Monshika' : userName);
+    final doc = pw.Document(title: _s.t('Laporan Monshika', 'Monshika report'), author: userName.isEmpty ? 'Monshika' : userName);
     doc.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(32),
@@ -162,34 +179,37 @@ class ExportService {
         decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: beni, width: 2))),
         child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
           pw.Text('MONSHIKA', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: ink, letterSpacing: 3)),
-          pw.Text('Laporan Keuangan · ${fmtRange(range)}', style: const pw.TextStyle(fontSize: 10, color: muted)),
+          pw.Text('${_s.t('Laporan keuangan', 'Money report')}, ${fmtRange(range)}', style: const pw.TextStyle(fontSize: 10, color: muted)),
         ]),
       ),
       footer: (ctx) => pw.Align(
         alignment: pw.Alignment.centerRight,
-        child: pw.Text('Halaman ${ctx.pageNumber}/${ctx.pagesCount} · dibuat ${fmtDate(DateTime.now())}',
-            style: const pw.TextStyle(fontSize: 8, color: muted)),
+        child: pw.Text(
+          _s.t('Halaman ${ctx.pageNumber}/${ctx.pagesCount}, dibuat ${fmtDate(DateTime.now())}',
+              'Page ${ctx.pageNumber}/${ctx.pagesCount}, made on ${fmtDate(DateTime.now())}'),
+          style: const pw.TextStyle(fontSize: 8, color: muted),
+        ),
       ),
       build: (ctx) => [
         pw.SizedBox(height: 12),
         pw.Row(children: [
-          stat('Pemasukan', money(s.income, baseCurrency), matcha),
+          stat(_s.income, money(s.income, baseCurrency), matcha),
           pw.SizedBox(width: 8),
-          stat('Pengeluaran', money(s.expense, baseCurrency), beni),
+          stat(_s.expense, money(s.expense, baseCurrency), beni),
           pw.SizedBox(width: 8),
-          stat('Selisih', money(s.income - s.expense, baseCurrency), ink),
+          stat(_s.t('Selisih', 'Net'), money(s.income - s.expense, baseCurrency), ink),
           pw.SizedBox(width: 8),
-          stat('Kekayaan bersih', money(f.totalBalance, baseCurrency), ink),
+          stat(_s.t('Kekayaan bersih', 'Net worth'), money(f.totalBalance, baseCurrency), ink),
         ]),
         pw.SizedBox(height: 18),
-        pw.Text('Pengeluaran per kategori', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        pw.Text(_s.t('Pengeluaran per kategori', 'Spending by category'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 6),
         pw.TableHelper.fromTextArray(
-          headers: ['Kategori', 'Total', '%'],
+          headers: [_s.category, 'Total', '%'],
           data: [
             for (final e in f.breakdown(c.txs, 'expense'))
               [
-                e.key == null ? 'Tanpa kategori' : c.categories[e.key]?.name ?? '-',
+                e.key == null ? _s.noCategory : c.categories[e.key]?.name ?? '-',
                 money(e.value, baseCurrency),
                 s.expense == 0 ? '0%' : '${(e.value / s.expense * 100).toStringAsFixed(1)}%',
               ],
@@ -200,12 +220,12 @@ class ExportService {
           cellAlignments: {1: pw.Alignment.centerRight, 2: pw.Alignment.centerRight},
         ),
         pw.SizedBox(height: 18),
-        pw.Text('Kakeibo — 4 pilar', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        pw.Text(_s.t('Jenis pengeluaran (Kakeibo)', 'Spending types (Kakeibo)'), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 6),
         pw.TableHelper.fromTextArray(
-          headers: ['Pilar', 'Total'],
+          headers: [_s.t('Jenis', 'Type'), 'Total'],
           data: [
-            for (final e in f.pillarBreakdown(c.txs).entries) [kPillars[e.key]?.$1 ?? e.key, money(e.value, baseCurrency)],
+            for (final e in f.pillarBreakdown(c.txs).entries) [pillarLabel(_s, e.key), money(e.value, baseCurrency)],
           ],
           headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
           headerDecoration: const pw.BoxDecoration(color: ink),
@@ -213,15 +233,15 @@ class ExportService {
           cellAlignments: {1: pw.Alignment.centerRight},
         ),
         pw.SizedBox(height: 18),
-        pw.Text('Daftar transaksi (${c.txs.length})', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+        pw.Text('${_s.t('Daftar transaksi', 'Transactions')} (${c.txs.length})', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 6),
         pw.TableHelper.fromTextArray(
-          headers: ['Tanggal', 'Tipe', 'Kategori', 'Dompet', 'Catatan', 'Nominal'],
+          headers: [_s.date, _s.t('Tipe', 'Type'), _s.category, _s.wallet, _s.note, _s.amount],
           data: [
             for (final t in c.txs)
               [
                 DateFormat('dd/MM/yy HH:mm').format(t.date),
-                _typeLabel[t.type] ?? t.type,
+                _s.typeLabel(t.type),
                 t.type == 'transfer'
                     ? '-> ${c.accounts[t.toAccountId]?.name ?? ''}'
                     : (t.categoryId == null ? '' : c.categories[t.categoryId]?.name ?? ''),
@@ -241,53 +261,65 @@ class ExportService {
     return doc.save();
   }
 
-  /// Import CSV dengan format sama seperti export. Mengembalikan jumlah baris masuk.
+  /// Import CSV dengan format yang sama seperti ekspor (header Indonesia atau Inggris).
+  /// Mengembalikan jumlah baris yang berhasil masuk.
   Future<int> importCsv(Uint8List bytes, {required int fallbackAccountId}) async {
     var text = utf8.decode(bytes, allowMalformed: true);
     if (text.startsWith('﻿')) text = text.substring(1);
     final rows = csv.decode(text);
     if (rows.length < 2) return 0;
     final header = rows.first.map((e) => e.toString().trim().toLowerCase()).toList();
-    int col(String name) => header.indexOf(name.toLowerCase());
+    int col(String key) {
+      final c = _columns.firstWhere((x) => x.$1 == key);
+      final i = header.indexOf(c.$2.toLowerCase());
+      return i >= 0 ? i : header.indexOf(c.$3.toLowerCase());
+    }
 
     final accounts = await db.getAccounts(includeArchived: true);
     final categories = await db.getCategories();
-    final typeByLabel = {for (final e in _typeLabel.entries) e.value.toLowerCase(): e.key};
+    const id = S();
+    const en = S(en: true);
+    final typeByLabel = {
+      for (final k in ['income', 'expense', 'transfer']) ...{
+        id.typeLabel(k).toLowerCase(): k,
+        en.typeLabel(k).toLowerCase(): k,
+        k: k,
+      },
+    };
 
     var count = 0;
     await db.transaction(() async {
       for (final r in rows.skip(1)) {
-        String cell(String name) {
-          final i = col(name);
+        String cell(String key) {
+          final i = col(key);
           return i < 0 || i >= r.length ? '' : r[i].toString().trim();
         }
 
-        final date = DateTime.tryParse('${cell('Tanggal')} ${cell('Jam').isEmpty ? '00:00' : cell('Jam')}');
-        final amount = parseAmount(cell('Nominal'))?.abs();
+        final date = DateTime.tryParse('${cell('date')} ${cell('time').isEmpty ? '00:00' : cell('time')}');
+        final amount = parseAmount(cell('amount'))?.abs();
         if (date == null || amount == null || amount == 0) continue;
-        final rawType = cell('Tipe').toLowerCase();
-        final type = typeByLabel[rawType] ?? (['income', 'expense', 'transfer'].contains(rawType) ? rawType : 'expense');
+        final type = typeByLabel[cell('type').toLowerCase()] ?? 'expense';
         int? findAccount(String name) =>
             accounts.where((a) => a.name.toLowerCase() == name.toLowerCase()).map((a) => a.id).firstOrNull;
-        final sub = cell('Sub-kategori');
-        final catName = sub.isNotEmpty ? sub : cell('Kategori');
+        final sub = cell('subcategory');
+        final catName = sub.isNotEmpty ? sub : cell('category');
         final catId = categories
             .where((c) => c.name.toLowerCase() == catName.toLowerCase() && (type == 'transfer' || c.type == type))
             .map((c) => c.id)
             .firstOrNull;
-        final toAcc = findAccount(cell('Ke Dompet'));
+        final toAcc = findAccount(cell('toAccount'));
         if (type == 'transfer' && toAcc == null) continue;
         await db.saveTransaction(TransactionsCompanion.insert(
           type: type,
           amount: amount,
-          accountId: findAccount(cell('Dompet')) ?? fallbackAccountId,
+          accountId: findAccount(cell('account')) ?? fallbackAccountId,
           toAccountId: Value(type == 'transfer' ? toAcc : null),
-          toAmount: Value(parseAmount(cell('Nominal Tujuan'))),
-          fee: Value(parseAmount(cell('Biaya')) ?? 0),
+          toAmount: Value(parseAmount(cell('toAmount'))),
+          fee: Value(parseAmount(cell('fee')) ?? 0),
           categoryId: Value(type == 'transfer' ? null : catId),
           date: date,
-          note: Value(cell('Catatan')),
-          payee: Value(cell('Penerima')),
+          note: Value(cell('note')),
+          payee: Value(cell('payee')),
         ));
         count++;
       }

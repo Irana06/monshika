@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="serif"
-        android:text="算 Budget"
+        android:text="Budget"
         android:textColor="#C9A45C"
         android:textSize="12sp" />
 
@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Belum ada budget"
+        android:text="No budgets yet"
         android:textColor="#9A948A"
         android:textSize="12sp"
         android:visibility="gone" />

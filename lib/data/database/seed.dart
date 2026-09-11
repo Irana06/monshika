@@ -1,16 +1,21 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/painting.dart' show Color;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../l10n/strings.dart';
 import 'database.dart';
 
-const kSystemDebtCategory = 'Utang & Piutang';
-const kSystemAdjustCategory = 'Penyesuaian Saldo';
-const kSystemGoalCategory = 'Tabungan Target';
+/// Kategori sistem dikenali dari glyph-nya, bukan dari nama, supaya tetap
+/// ditemukan apa pun bahasa yang dipakai.
+const kSystemDebtGlyph = '借';
+const kSystemAdjustGlyph = '調';
+const kSystemGoalGlyph = '貯';
 
 class _Cat {
-  const _Cat(this.name, this.icon, this.color, [this.pillar, this.children = const []]);
-  final String name;
+  const _Cat(this.id, this.en, this.icon, this.color, [this.pillar, this.children = const []]);
+  final String id;
+  final String en;
   final String icon;
   final Color color;
   final String? pillar;
@@ -18,56 +23,59 @@ class _Cat {
 }
 
 const _expense = <_Cat>[
-  _Cat('Makan & Minum', '食', WaColors.shu, 'needs', [
-    _Cat('Kopi & Jajan', '茶', WaColors.cha, 'wants'),
-    _Cat('Makan di Luar', '店', WaColors.kohaku, 'wants'),
+  _Cat('Makan & minum', 'Food & drinks', '食', WaColors.shu, 'needs', [
+    _Cat('Kopi & jajan', 'Coffee & snacks', '茶', WaColors.cha, 'wants'),
+    _Cat('Makan di luar', 'Eating out', '店', WaColors.kohaku, 'wants'),
   ]),
-  _Cat('Belanja Harian', '買', WaColors.yamabuki, 'needs'),
-  _Cat('Transportasi', '車', WaColors.asagi, 'needs', [
-    _Cat('Bensin', '油', WaColors.kohaku, 'needs'),
-    _Cat('Ojek Online', '走', WaColors.wakatake, 'needs'),
-    _Cat('Parkir & Tol', '駐', WaColors.nezumi, 'needs'),
+  _Cat('Belanja harian', 'Groceries', '買', WaColors.yamabuki, 'needs'),
+  _Cat('Transportasi', 'Transport', '車', WaColors.asagi, 'needs', [
+    _Cat('Bensin', 'Fuel', '油', WaColors.kohaku, 'needs'),
+    _Cat('Ojek online', 'Ride hailing', '走', WaColors.wakatake, 'needs'),
+    _Cat('Parkir & tol', 'Parking & tolls', '駐', WaColors.nezumi, 'needs'),
   ]),
-  _Cat('Tempat Tinggal', '家', WaColors.cha, 'needs'),
-  _Cat('Tagihan', '電', WaColors.ruri, 'needs', [
-    _Cat('Listrik', '雷', WaColors.yamabuki, 'needs'),
-    _Cat('Internet', '網', WaColors.ai, 'needs'),
-    _Cat('Pulsa & Kuota', '話', WaColors.fuji, 'needs'),
-    _Cat('Air', '水', WaColors.asagi, 'needs'),
+  _Cat('Tempat tinggal', 'Housing', '家', WaColors.cha, 'needs'),
+  _Cat('Tagihan', 'Bills', '電', WaColors.ruri, 'needs', [
+    _Cat('Listrik', 'Electricity', '雷', WaColors.yamabuki, 'needs'),
+    _Cat('Internet', 'Internet', '網', WaColors.ai, 'needs'),
+    _Cat('Pulsa & kuota', 'Phone & data', '話', WaColors.fuji, 'needs'),
+    _Cat('Air', 'Water', '水', WaColors.asagi, 'needs'),
   ]),
-  _Cat('Kesehatan', '医', WaColors.matcha, 'needs'),
-  _Cat('Pendidikan', '学', WaColors.ai, 'culture'),
-  _Cat('Hiburan', '遊', WaColors.sakura, 'wants'),
-  _Cat('Belanja & Fashion', '服', WaColors.fuji, 'wants'),
-  _Cat('Langganan', '定', WaColors.ruri, 'wants'),
-  _Cat('Keluarga', '族', WaColors.momiji, 'needs'),
-  _Cat('Perawatan Diri', '美', WaColors.sakura, 'wants'),
-  _Cat('Olahraga', '体', WaColors.wakatake, 'culture'),
-  _Cat('Hadiah & Donasi', '贈', WaColors.beni, 'culture'),
-  _Cat('Liburan', '旅', WaColors.asagi, 'wants'),
-  _Cat('Pajak & Biaya', '税', WaColors.nezumi, 'needs'),
-  _Cat('Cicilan', '返', WaColors.momiji, 'needs'),
-  _Cat('Tak Terduga', '急', WaColors.beni, 'unexpected'),
-  _Cat('Lainnya', '他', WaColors.nezumi, 'unexpected'),
+  _Cat('Kesehatan', 'Health', '医', WaColors.matcha, 'needs'),
+  _Cat('Pendidikan', 'Education', '学', WaColors.ai, 'culture'),
+  _Cat('Hiburan', 'Entertainment', '遊', WaColors.sakura, 'wants'),
+  _Cat('Belanja & fashion', 'Shopping', '服', WaColors.fuji, 'wants'),
+  _Cat('Langganan', 'Subscriptions', '定', WaColors.ruri, 'wants'),
+  _Cat('Keluarga', 'Family', '族', WaColors.momiji, 'needs'),
+  _Cat('Perawatan diri', 'Self care', '美', WaColors.sakura, 'wants'),
+  _Cat('Olahraga', 'Sports', '体', WaColors.wakatake, 'culture'),
+  _Cat('Hadiah & donasi', 'Gifts & charity', '贈', WaColors.beni, 'culture'),
+  _Cat('Liburan', 'Travel', '旅', WaColors.asagi, 'wants'),
+  _Cat('Pajak & biaya', 'Taxes & fees', '税', WaColors.nezumi, 'needs'),
+  _Cat('Cicilan', 'Installments', '返', WaColors.momiji, 'needs'),
+  _Cat('Tak terduga', 'Unexpected', '急', WaColors.beni, 'unexpected'),
+  _Cat('Lainnya', 'Other', '他', WaColors.nezumi, 'unexpected'),
 ];
 
 const _income = <_Cat>[
-  _Cat('Gaji', '給', WaColors.matcha),
-  _Cat('Bonus & THR', '賞', WaColors.kin),
-  _Cat('Freelance', '業', WaColors.wakatake),
-  _Cat('Investasi', '株', WaColors.asagi),
-  _Cat('Penjualan', '売', WaColors.yamabuki),
-  _Cat('Hadiah', '贈', WaColors.sakura),
-  _Cat('Cashback & Refund', '戻', WaColors.fuji),
-  _Cat('Lainnya', '他', WaColors.nezumi),
+  _Cat('Gaji', 'Salary', '給', WaColors.matcha),
+  _Cat('Bonus & THR', 'Bonus', '賞', WaColors.kin),
+  _Cat('Freelance', 'Freelance', '業', WaColors.wakatake),
+  _Cat('Investasi', 'Investments', '株', WaColors.asagi),
+  _Cat('Penjualan', 'Sales', '売', WaColors.yamabuki),
+  _Cat('Hadiah', 'Gifts', '贈', WaColors.sakura),
+  _Cat('Cashback & refund', 'Cashback & refunds', '戻', WaColors.fuji),
+  _Cat('Lainnya', 'Other', '他', WaColors.nezumi),
 ];
 
 Future<void> seedDefaults(AppDatabase db) async {
+  final prefs = await SharedPreferences.getInstance();
+  final s = S.fromPrefs(prefs);
+
   var order = 0;
   Future<void> insertCats(List<_Cat> cats, String type, {int? parentId}) async {
     for (final c in cats) {
       final id = await db.into(db.categories).insert(CategoriesCompanion.insert(
-            name: c.name,
+            name: s.t(c.id, c.en),
             type: type,
             icon: c.icon,
             color: c.color.toARGB32(),
@@ -83,9 +91,9 @@ Future<void> seedDefaults(AppDatabase db) async {
   await insertCats(_income, 'income');
 
   for (final sys in [
-    (kSystemDebtCategory, '借', WaColors.nezumi),
-    (kSystemAdjustCategory, '調', WaColors.nezumi),
-    (kSystemGoalCategory, '貯', WaColors.kin),
+    (s.t('Utang & piutang', 'Debts'), kSystemDebtGlyph, WaColors.nezumi),
+    (s.t('Penyesuaian saldo', 'Balance adjustment'), kSystemAdjustGlyph, WaColors.nezumi),
+    (s.t('Setoran target', 'Goal savings'), kSystemGoalGlyph, WaColors.kin),
   ]) {
     await db.into(db.categories).insert(CategoriesCompanion.insert(
           name: sys.$1,
@@ -97,7 +105,7 @@ Future<void> seedDefaults(AppDatabase db) async {
         ));
   }
 
-  await db.into(db.tags).insert(TagsCompanion.insert(name: 'penting', color: WaColors.beni.toARGB32()));
-  await db.into(db.tags).insert(TagsCompanion.insert(name: 'kerja', color: WaColors.ai.toARGB32()));
-  await db.into(db.tags).insert(TagsCompanion.insert(name: 'liburan', color: WaColors.asagi.toARGB32()));
+  await db.into(db.tags).insert(TagsCompanion.insert(name: s.t('penting', 'important'), color: WaColors.beni.toARGB32()));
+  await db.into(db.tags).insert(TagsCompanion.insert(name: s.t('kerja', 'work'), color: WaColors.ai.toARGB32()));
+  await db.into(db.tags).insert(TagsCompanion.insert(name: s.t('liburan', 'holiday'), color: WaColors.asagi.toARGB32()));
 }

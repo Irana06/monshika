@@ -7,6 +7,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../data/database/seed.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 
 Future<int?> showAccountPicker(
@@ -14,8 +16,9 @@ Future<int?> showAccountPicker(
   WidgetRef ref, {
   int? selectedId,
   int? excludeId,
-  String title = 'Pilih Dompet',
+  String? title,
 }) {
+  final s = S.of(context);
   return showModalBottomSheet<int>(
     context: context,
     isScrollControlled: true,
@@ -30,13 +33,15 @@ Future<int?> showAccountPicker(
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
-              Text(title, style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+              Text(title ?? s.chooseWallet, style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
               const SizedBox(height: 12),
               if (accounts.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('Belum ada dompet. Tambahkan dulu di menu Dompet.',
-                      style: AppTheme.sans(color: WaColors.washiMuted)),
+                  child: Text(
+                    s.t('Belum ada dompet. Tambahkan dulu lewat menu Dompet.', 'No wallets yet. Add one from the Wallets menu.'),
+                    style: AppTheme.sans(color: WaColors.washiMuted),
+                  ),
                 ),
               for (final a in accounts)
                 Padding(
@@ -54,7 +59,7 @@ Future<int?> showAccountPicker(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(a.name, style: AppTheme.sans(size: 15, weight: FontWeight.w600)),
-                              Text('${kAccountTypes[a.type]?.$1 ?? a.type} · ${a.currency}',
+                              Text('${accountTypeLabel(s, a.type)} · ${a.currency}',
                                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
                             ],
                           ),
@@ -106,6 +111,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final all = (ref.watch(categoriesProvider).value ?? const <TxCategory>[])
         .where((c) => c.type == widget.type && !c.isSystem && !c.archived)
         .toList();
@@ -120,8 +126,10 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
         controller: scroll,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Text(widget.type == 'income' ? 'Kategori Pemasukan' : 'Kategori Pengeluaran',
-              style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+          Text(
+            widget.type == 'income' ? s.t('Kategori pemasukan', 'Income category') : s.t('Kategori pengeluaran', 'Expense category'),
+            style: AppTheme.serif(size: 18, weight: FontWeight.w600),
+          ),
           const SizedBox(height: 14),
           GridView.builder(
             shrinkWrap: true,
@@ -153,8 +161,11 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
           ),
           if (children.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('Sub-kategori · ketuk induk sekali lagi untuk memilih induknya',
-                style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
+            Text(
+              s.t('Subkategori. Ketuk kategori utamanya sekali lagi kalau mau pilih kategori utama.',
+                  'Subcategories. Tap the main category again to pick it instead.'),
+              style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -163,7 +174,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                 for (final c in children)
                   ChoiceChip(
                     selected: c.id == widget.selectedId,
-                    avatar: Text(c.icon, style: AppTheme.serif(size: 14, color: Color(c.color))),
+                    avatar: GlyphIcon(c.icon, color: Color(c.color), size: 16),
                     label: Text(c.name),
                     onSelected: (_) => Navigator.pop(context, c.id),
                   ),
@@ -232,11 +243,24 @@ class _CatTile extends StatelessWidget {
   }
 }
 
+/// Nama kategori untuk ditampilkan. Kategori sistem mengikuti bahasa aplikasi.
+String categoryName(TxCategory c, [S? strings]) {
+  final s = strings ?? S.current;
+  if (!c.isSystem) return c.name;
+  return switch (c.icon) {
+    kSystemDebtGlyph => s.t('Utang & piutang', 'Debts'),
+    kSystemAdjustGlyph => s.t('Penyesuaian saldo', 'Balance adjustment'),
+    kSystemGoalGlyph => s.t('Setoran target', 'Goal savings'),
+    _ => c.name,
+  };
+}
+
 /// Label kategori: "Induk › Sub".
-String categoryLabel(Map<int, TxCategory> map, int? id, {String empty = 'Tanpa kategori'}) {
-  if (id == null) return empty;
+String categoryLabel(Map<int, TxCategory> map, int? id, {String? empty}) {
+  final fallback = empty ?? S.current.noCategory;
+  if (id == null) return fallback;
   final c = map[id];
-  if (c == null) return empty;
+  if (c == null) return fallback;
   final p = c.parentId == null ? null : map[c.parentId];
-  return p == null ? c.name : '${p.name} › ${c.name}';
+  return p == null ? categoryName(c) : '${categoryName(p)} › ${categoryName(c)}';
 }

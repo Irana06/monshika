@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../core/utils/dates.dart';
 import '../core/utils/money.dart';
 import '../data/database/database.dart';
+import '../l10n/strings.dart';
 
 /// Kumpulan perhitungan murni (tanpa I/O) supaya bisa dipakai di aplikasi,
 /// dialog quick-add, maupun isolate widget beranda.
@@ -289,7 +290,9 @@ List<UpcomingBill> upcomingBills({
     final left = d.amount - (debtPaid[d.id] ?? 0);
     if (left <= 0) continue;
     list.add(UpcomingBill(
-      title: d.direction == 'borrow' ? 'Bayar utang ke ${d.person}' : 'Tagih ${d.person}',
+      title: d.direction == 'borrow'
+          ? S.current.t('Bayar utang ke ${d.person}', 'Pay back ${d.person}')
+          : S.current.t('Tagih ${d.person}', 'Collect from ${d.person}'),
       date: d.dueDate!,
       amount: left,
       currency: d.currency,

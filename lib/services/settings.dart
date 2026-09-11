@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/strings.dart';
+
 class AppSettings {
   const AppSettings({
     this.userName = '',
+    this.language = 'id',
+    this.japaneseStyle = false,
     this.baseCurrency = 'IDR',
     this.monthStartDay = 1,
     this.firstWeekday = DateTime.monday,
@@ -30,6 +34,12 @@ class AppSettings {
   });
 
   final String userName;
+
+  /// id | en
+  final String language;
+
+  /// Ikon kanji & label Jepang. Default mati.
+  final bool japaneseStyle;
   final String baseCurrency;
   final int monthStartDay;
   final int firstWeekday;
@@ -56,6 +66,8 @@ class AppSettings {
   final int? defaultAccountId;
   final DateTime? ratesUpdatedAt;
 
+  S get strings => S(en: language == 'en', jp: japaneseStyle);
+
   static AppSettings fromPrefs(SharedPreferences p) {
     DateTime? dt(String k) {
       final v = p.getInt(k);
@@ -64,6 +76,8 @@ class AppSettings {
 
     return AppSettings(
       userName: p.getString('userName') ?? '',
+      language: p.getString('language') ?? S.defaultLanguage(),
+      japaneseStyle: p.getBool('japaneseStyle') ?? false,
       baseCurrency: p.getString('baseCurrency') ?? 'IDR',
       monthStartDay: p.getInt('monthStartDay') ?? 1,
       firstWeekday: p.getInt('firstWeekday') ?? DateTime.monday,
@@ -95,6 +109,9 @@ final sharedPrefsProvider = Provider<SharedPreferences>((ref) => throw Unimpleme
 
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
 
+/// Teks aktif (bahasa + gaya Jepang) untuk kode yang memakai Riverpod.
+final stringsProvider = Provider<S>((ref) => ref.watch(settingsProvider).strings);
+
 class SettingsNotifier extends Notifier<AppSettings> {
   SharedPreferences get _p => ref.read(sharedPrefsProvider);
 
@@ -120,6 +137,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   Future<void> setUserName(String v) => _set('userName', v);
+  Future<void> setLanguage(String v) => _set('language', v);
+  Future<void> setJapaneseStyle(bool v) => _set('japaneseStyle', v);
   Future<void> setBaseCurrency(String v) => _set('baseCurrency', v);
   Future<void> setMonthStartDay(int v) => _set('monthStartDay', v);
   Future<void> setFirstWeekday(int v) => _set('firstWeekday', v);

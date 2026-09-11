@@ -10,11 +10,12 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/money.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/database/database.dart';
+import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
 import '../../services/money_actions.dart';
 import '../common/pickers.dart';
 
-/// Jimat omamori (お守り) yang terisi sesuai progres tabungan.
+/// Kantong tabungan berbentuk omamori yang terisi sesuai progres.
 class Omamori extends StatelessWidget {
   const Omamori({super.key, required this.progress, required this.color, required this.glyph, this.width = 90});
 
@@ -25,6 +26,7 @@ class Omamori extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final jp = S.of(context).jp;
     final h = width * 1.45;
     final p = progress.clamp(0, 1).toDouble();
     return SizedBox(
@@ -70,12 +72,13 @@ class Omamori extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned.fill(child: CustomPaint(painter: SeigaihaPainter(color: WaColors.washi.withValues(alpha: 0.06), radius: width * 0.14))),
+                    if (jp)
+                      Positioned.fill(child: CustomPaint(painter: SeigaihaPainter(color: WaColors.washi.withValues(alpha: 0.06), radius: width * 0.14))),
                     Center(
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: width * 0.08, horizontal: width * 0.06),
                         decoration: BoxDecoration(color: WaColors.sumi.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(4)),
-                        child: Text(glyph, style: AppTheme.serif(size: width * 0.3, weight: FontWeight.w700, color: WaColors.washi)),
+                        child: GlyphIcon(glyph, color: WaColors.washi, size: width * 0.3),
                       ),
                     ),
                   ],
@@ -94,12 +97,13 @@ class GoalsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final goals = (ref.watch(goalsProvider).value ?? const <Goal>[]).where((g) => !g.archived).toList();
     final saved = ref.watch(goalSavedProvider).value ?? const {};
     final hidden = ref.watch(settingsProvider).hideBalance;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Target · 夢')),
+      appBar: AppBar(title: Text(t.withJp('夢', t.t('Target', 'Goals')))),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add-goal',
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen())),
@@ -108,9 +112,9 @@ class GoalsScreen extends ConsumerWidget {
       body: goals.isEmpty
           ? EmptyState(
               kanji: '夢',
-              title: 'Belum ada target',
-              subtitle: 'Nabung untuk HP baru, liburan ke Jepang, dana darurat…',
-              action: 'Buat target',
+              title: t.t('Belum ada target', 'No goals yet'),
+              subtitle: t.t('Nabung buat HP baru, liburan, atau dana darurat.', 'Save for a new phone, a trip, or an emergency fund.'),
+              action: t.t('Buat target', 'Create a goal'),
               onAction: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GoalFormScreen())),
             )
           : GridView.builder(
@@ -134,7 +138,10 @@ class GoalsScreen extends ConsumerWidget {
                       Row(children: [
                         if (g.pinned) const Icon(Icons.push_pin, size: 14, color: WaColors.accent),
                         const Spacer(),
-                        if (g.completedAt != null) Text('達成', style: AppTheme.serif(size: 12, color: WaColors.income, weight: FontWeight.w700)),
+                        if (g.completedAt != null)
+                          t.jp
+                              ? Text('達成', style: AppTheme.serif(size: 12, color: WaColors.income, weight: FontWeight.w700))
+                              : const Icon(Icons.check_circle, size: 16, color: WaColors.income),
                       ]),
                       Expanded(child: FittedBox(child: Omamori(progress: p, color: Color(g.color), glyph: g.icon))),
                       const SizedBox(height: 8),
@@ -159,8 +166,9 @@ class GoalDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
     final g = (ref.watch(goalsProvider).value ?? const <Goal>[]).where((x) => x.id == goalId).firstOrNull;
-    if (g == null) return const Scaffold(body: Center(child: Text('Target tidak ditemukan')));
+    if (g == null) return Scaffold(body: Center(child: Text(t.t('Target tidak ditemukan', 'Goal not found'))));
     final saved = (ref.watch(goalSavedProvider).value ?? const {})[g.id] ?? 0;
     final entries = ref.watch(_entriesProvider(g.id)).value ?? const <GoalEntry>[];
     final hidden = ref.watch(settingsProvider).hideBalance;
@@ -170,11 +178,15 @@ class GoalDetailScreen extends ConsumerWidget {
     if (g.deadline != null && left > 0) {
       final days = g.deadline!.difference(DateTime.now()).inDays;
       if (days <= 0) {
-        plan = 'Tenggat sudah lewat';
+        plan = t.t('Tenggatnya sudah lewat', 'The deadline has passed');
       } else {
         final months = math.max(1, (days / 30.4).ceil());
-        plan = 'Nabung ${formatMoney(left / months, g.currency, compact: true, hidden: hidden)}/bulan '
-            'atau ${formatMoney(left / math.max(1, days / 7), g.currency, compact: true, hidden: hidden)}/minggu agar tercapai ${fmtDate(g.deadline!)}';
+        final perMonth = formatMoney(left / months, g.currency, compact: true, hidden: hidden);
+        final perWeek = formatMoney(left / math.max(1, days / 7), g.currency, compact: true, hidden: hidden);
+        plan = t.t(
+          'Sisihkan $perMonth tiap bulan atau $perWeek tiap minggu supaya tercapai ${fmtDate(g.deadline!)}.',
+          'Put aside $perMonth a month or $perWeek a week to get there by ${fmtDate(g.deadline!)}.',
+        );
       }
     }
 
@@ -196,7 +208,8 @@ class GoalDetailScreen extends ConsumerWidget {
           Center(child: Text('${(p * 100).toStringAsFixed(1)}%', style: AppTheme.serif(size: 30, weight: FontWeight.w700))),
           Center(
             child: Text(
-              '${formatMoney(saved, g.currency, hidden: hidden)} dari ${formatMoney(g.targetAmount, g.currency, hidden: hidden)}',
+              t.t('${formatMoney(saved, g.currency, hidden: hidden)} dari ${formatMoney(g.targetAmount, g.currency, hidden: hidden)}',
+                  '${formatMoney(saved, g.currency, hidden: hidden)} of ${formatMoney(g.targetAmount, g.currency, hidden: hidden)}'),
               style: AppTheme.sans(color: WaColors.washiMuted),
             ),
           ),
@@ -210,7 +223,12 @@ class GoalDetailScreen extends ConsumerWidget {
           ],
           if (g.completedAt != null) ...[
             const SizedBox(height: 12),
-            Center(child: Text('🎉 目標達成 — Target tercapai ${fmtDate(g.completedAt!)}', style: AppTheme.serif(size: 15, color: WaColors.income))),
+            Center(
+              child: Text(
+                '🎉 ${t.jp ? '目標達成. ' : ''}${t.t('Target tercapai ${fmtDate(g.completedAt!)}', 'Reached on ${fmtDate(g.completedAt!)}')}',
+                style: AppTheme.serif(size: 15, color: WaColors.income),
+              ),
+            ),
           ],
           const SizedBox(height: 16),
           Row(children: [
@@ -218,7 +236,7 @@ class GoalDetailScreen extends ConsumerWidget {
               child: FilledButton.icon(
                 onPressed: () => _entry(context, ref, g, deposit: true),
                 icon: const Icon(Icons.add),
-                label: const Text('Setor'),
+                label: Text(t.t('Setor', 'Add money')),
               ),
             ),
             const SizedBox(width: 10),
@@ -226,13 +244,13 @@ class GoalDetailScreen extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () => _entry(context, ref, g, deposit: false),
                 icon: const Icon(Icons.remove),
-                label: const Text('Tarik'),
+                label: Text(t.t('Ambil', 'Take out')),
               ),
             ),
           ]),
-          const SectionHeader(title: 'Riwayat setoran', jp: '歴'),
+          SectionHeader(title: t.t('Riwayat setoran', 'History'), jp: '歴'),
           if (entries.isEmpty)
-            const Padding(padding: EdgeInsets.all(16), child: Center(child: Text('Belum ada setoran')))
+            Padding(padding: const EdgeInsets.all(16), child: Center(child: Text(t.t('Belum ada setoran', 'Nothing saved yet'))))
           else
             WaCard(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -266,6 +284,7 @@ class GoalDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _entry(BuildContext context, WidgetRef ref, Goal g, {required bool deposit}) async {
+    final t = S.of(context);
     final amount = TextEditingController();
     final note = TextEditingController();
     int? accountId;
@@ -277,28 +296,35 @@ class GoalDetailScreen extends ConsumerWidget {
         return Padding(
           padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(ctx).bottom),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(deposit ? 'Setor ke ${g.name}' : 'Tarik dari ${g.name}', style: AppTheme.serif(size: 18, weight: FontWeight.w600)),
+            Text(
+              deposit ? t.t('Setor ke ${g.name}', 'Add to ${g.name}') : t.t('Ambil dari ${g.name}', 'Take from ${g.name}'),
+              style: AppTheme.serif(size: 18, weight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: amount,
               autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(prefixText: '${currencyInfo(g.currency).symbol} ', hintText: 'Nominal'),
+              decoration: InputDecoration(prefixText: '${currencyInfo(g.currency).symbol} ', hintText: t.amount),
             ),
             const SizedBox(height: 10),
-            TextField(controller: note, decoration: const InputDecoration(hintText: 'Catatan (opsional)')),
+            TextField(controller: note, decoration: InputDecoration(hintText: t.noteOptional)),
             const SizedBox(height: 10),
             PickerTile(
-              leading: KanjiBadge(glyph: acc?.icon ?? '―', color: Color(acc?.color ?? WaColors.nezumi.toARGB32()), size: 34),
-              title: acc?.name ?? 'Tanpa dompet (catat saja)',
-              subtitle: 'Jika dipilih, saldo dompet ikut ${deposit ? 'berkurang' : 'bertambah'}',
+              leading: acc == null
+                  ? const Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
+                  : KanjiBadge(glyph: acc.icon, color: Color(acc.color), size: 34),
+              title: acc?.name ?? t.t('Tanpa dompet (cuma dicatat)', 'No wallet (just record it)'),
+              subtitle: deposit
+                  ? t.t('Kalau dipilih, saldo dompetnya ikut berkurang', 'If you pick one, its balance goes down')
+                  : t.t('Kalau dipilih, saldo dompetnya ikut bertambah', 'If you pick one, its balance goes up'),
               onTap: () async {
                 final id = await showAccountPicker(ctx, ref, selectedId: accountId);
                 setSheet(() => accountId = id);
               },
             ),
             const SizedBox(height: 14),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Simpan')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t.save)),
           ]),
         );
       }),
@@ -312,7 +338,7 @@ class GoalDetailScreen extends ConsumerWidget {
       accountId: accountId,
       note: note.text.trim(),
     );
-    if (context.mounted && deposit) await showHanko(context, glyph: '貯', label: 'Tersimpan');
+    if (context.mounted && deposit) await showHanko(context, glyph: '貯', label: t.t('Tersimpan', 'Saved'));
   }
 }
 
@@ -339,8 +365,11 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
   late bool _archived = widget.existing?.archived ?? false;
 
   Future<void> _save() async {
+    final t = S.of(context);
     final target = parseAmount(_target.text);
-    if (_name.text.trim().isEmpty || target == null || target <= 0) return showSnack(context, 'Isi nama & nominal target');
+    if (_name.text.trim().isEmpty || target == null || target <= 0) {
+      return showSnack(context, t.t('Nama dan nominal target belum diisi', 'Fill in the goal name and amount'));
+    }
     final db = ref.read(databaseProvider);
     if (_pinned) {
       await (db.update(db.goals)).write(const GoalsCompanion(pinned: Value(false)));
@@ -362,15 +391,20 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = S.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Target Baru' : 'Ubah Target'),
+        title: Text(widget.existing == null ? t.t('Target baru', 'New goal') : t.t('Ubah target', 'Edit goal')),
         actions: [
           if (widget.existing != null)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
-                if (!await confirmDialog(context, title: 'Hapus target?', message: 'Riwayat setoran ikut terhapus (transaksi dompet tetap).')) return;
+                if (!await confirmDialog(context,
+                    title: t.t('Hapus target ini?', 'Delete this goal?'),
+                    message: t.t('Riwayat setorannya ikut terhapus. Transaksi di dompet tetap ada.', 'Its history will be deleted. Wallet transactions stay.'))) {
+                  return;
+                }
                 await ref.read(databaseProvider).deleteGoal(widget.existing!.id);
                 if (context.mounted) Navigator.of(context)..pop()..maybePop();
               },
@@ -390,9 +424,12 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          LabeledField(label: 'Nama target', child: TextField(controller: _name, decoration: const InputDecoration(hintText: 'mis. Liburan ke Kyoto'))),
           LabeledField(
-            label: 'Nominal target',
+            label: t.t('Nama target', 'Goal name'),
+            child: TextField(controller: _name, decoration: InputDecoration(hintText: t.t('Contoh: Liburan ke Kyoto', 'e.g. Trip to Kyoto'))),
+          ),
+          LabeledField(
+            label: t.t('Nominal target', 'Target amount'),
             child: Row(children: [
               Expanded(
                 child: TextField(
@@ -412,10 +449,10 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
             ]),
           ),
           LabeledField(
-            label: 'Tenggat (opsional)',
+            label: t.t('Tenggat (opsional)', 'Deadline (optional)'),
             child: PickerTile(
               leading: const Icon(Icons.event, color: WaColors.accent),
-              title: _deadline == null ? 'Tanpa tenggat' : fmtDateLong(_deadline!),
+              title: _deadline == null ? t.t('Tanpa tenggat', 'No deadline') : fmtDateLong(_deadline!),
               onTap: () async {
                 final d = await showDatePicker(
                   context: context,
@@ -427,18 +464,18 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
               },
             ),
           ),
-          LabeledField(label: 'Warna', child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
-          LabeledField(label: 'Catatan', child: TextField(controller: _note, maxLines: 2)),
+          LabeledField(label: t.color, child: ColorPickerRow(value: _color, onChanged: (c) => setState(() => _color = c))),
+          LabeledField(label: t.note, child: TextField(controller: _note, maxLines: 2)),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Sematkan di widget beranda'),
+            title: Text(t.t('Tampilkan di widget', 'Show on widget')),
             value: _pinned,
             onChanged: (v) => setState(() => _pinned = v),
           ),
           if (widget.existing != null)
-            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Arsipkan'), value: _archived, onChanged: (v) => setState(() => _archived = v)),
+            SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t.archive), value: _archived, onChanged: (v) => setState(() => _archived = v)),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(onPressed: _save, child: Text(t.save)),
         ],
       ),
     );
