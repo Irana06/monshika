@@ -16,6 +16,7 @@ import '../backup/backup_screen.dart';
 import '../categories/categories_screen.dart';
 import '../currency/currency_screen.dart';
 import '../lock/lock_screen.dart';
+import '../support/support_card.dart';
 import '../update/update_ui.dart';
 import '../widgets_guide/widgets_guide_screen.dart';
 
@@ -348,6 +349,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ]),
           _section('印', t.t('Tentang', 'About'), [
+            ListTile(
+              leading: const Icon(Icons.favorite_outline, color: WaColors.accent),
+              title: Text(t.t('Dukung lewat Saweria', 'Support on Saweria')),
+              subtitle: Text('saweria.co/shicomp', style: muted),
+              trailing: const Icon(Icons.open_in_new, size: 18, color: WaColors.washiMuted),
+              onTap: () => openSaweria(context),
+            ),
             ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('Monshika'),

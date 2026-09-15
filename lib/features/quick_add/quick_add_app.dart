@@ -21,10 +21,12 @@ class QuickAddApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     S.current = s;
-    final theme = AppTheme.dark();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: theme.copyWith(scaffoldBackgroundColor: Colors.transparent),
+      // Tema tetap solid. Hanya dialog catat cepat yang diberi latar gelap tembus
+      // pandang lewat Scaffold-nya sendiri, supaya form lengkap tidak menampilkan
+      // wallpaper HP di belakangnya.
+      theme: AppTheme.dark(),
       locale: s.locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [

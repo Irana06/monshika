@@ -20,6 +20,7 @@ import '../presets/presets_screen.dart';
 import '../recurring/recurring_screen.dart';
 import '../settings/settings_screen.dart';
 import '../split_bill/split_bill_screen.dart';
+import '../support/support_card.dart';
 import '../update/update_ui.dart';
 import '../widgets_guide/widgets_guide_screen.dart';
 
@@ -126,6 +127,8 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
           ],
+          SectionHeader(title: t.t('Dukung Monshika', 'Support Monshika'), jp: '援'),
+          const SupportCard(),
           const SizedBox(height: 24),
           Center(
             child: Text(
