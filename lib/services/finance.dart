@@ -22,7 +22,9 @@ class Finance {
   final Map<String, double> rates;
   final String baseCurrency;
 
-  static const liquidTypes = {'cash', 'bank', 'ewallet', 'savings'};
+  /// Saldo yang benar-benar bebas dipakai. Tabungan sengaja tidak termasuk
+  /// karena itu uang yang sudah disisihkan, bukan jatah belanja.
+  static const liquidTypes = {'cash', 'bank', 'ewallet'};
   static const liabilityTypes = {'credit', 'paylater'};
 
   String currencyOf(int accountId) => accounts[accountId]?.currency ?? baseCurrency;
@@ -134,7 +136,19 @@ class Finance {
     return total;
   }
 
-  /// Sisa aman dibelanjakan per hari untuk sisa periode.
+  /// Rencana dan sisa aman belanja untuk periode berjalan.
+  ///
+  /// Menghasilkan dua lapis angka:
+  /// - **Rencana** ([SafeToSpend.periodPool] dan [SafeToSpend.periodPerDay]):
+  ///   patokan tetap untuk seluruh periode, dihitung dari pemasukan dikurangi
+  ///   target menabung dan semua tagihan periode ini (yang sudah dibayar maupun
+  ///   yang belum). Angkanya tidak bergerak walau hari ini boros.
+  /// - **Realisasi** ([SafeToSpend.perDay] dan [SafeToSpend.todayLeft]): sisa
+  ///   yang dibagi rata ke hari yang tersisa, jadi ikut menyesuaikan tiap hari.
+  ///
+  /// [upcomingBills] adalah tagihan yang belum dibayar sampai akhir periode.
+  /// Tagihan yang sudah dibayar dibaca dari [periodTxs] lewat relasinya ke
+  /// transaksi berulang, cicilan, dan utang, supaya tidak terhitung dua kali.
   SafeToSpend safeToSpend({
     required Iterable<TxEntry> periodTxs,
     required DateRange range,
@@ -146,14 +160,22 @@ class Finance {
     final today = dateOnly(now ?? DateTime.now());
     final remainingDays = math.max(1, range.end.difference(today).inDays);
     final s = summarize(periodTxs);
-    final todaySpent = periodTxs
-        .where((t) => t.type == 'expense' && countsInStats(t) && dateOnly(t.date) == today)
-        .fold(0.0, (v, t) => v + txBase(t));
+
+    var todaySpent = 0.0;
+    var paidBills = 0.0;
+    for (final t in periodTxs) {
+      if (t.type != 'expense' || !countsInStats(t)) continue;
+      final v = txBase(t);
+      if (dateOnly(t.date) == today) todaySpent += v;
+      if (t.recurringId != null || t.installmentId != null || t.debtId != null) paidBills += v;
+    }
+
+    final income = math.max(s.income, plannedIncome);
+    final hasPlan = income > 0;
 
     final double pool;
     final String basis;
-    final income = math.max(s.income, plannedIncome);
-    if (income > 0) {
+    if (hasPlan) {
       pool = income - savingsTarget - upcomingBills - (s.expense - todaySpent);
       basis = 'income';
     } else {
@@ -161,6 +183,13 @@ class Finance {
       basis = 'balance';
     }
     final perDay = pool / remainingDays;
+
+    // Lapis rencana. Semua tagihan periode ini = yang belum dibayar + yang
+    // sudah dibayar, jadi belanja bebasnya = pengeluaran di luar tagihan.
+    final periodDays = math.max(1, range.days);
+    final periodPool = hasPlan ? income - savingsTarget - upcomingBills - paidBills : 0.0;
+    final periodSpent = math.max(0.0, s.expense - paidBills);
+
     return SafeToSpend(
       perDay: perDay,
       todaySpent: todaySpent,
@@ -168,6 +197,11 @@ class Finance {
       remainingDays: remainingDays,
       pool: pool,
       basis: basis,
+      periodPool: periodPool,
+      periodPerDay: periodPool / periodDays,
+      periodSpent: periodSpent,
+      periodDays: periodDays,
+      paidBills: paidBills,
     );
   }
 }
@@ -180,14 +214,44 @@ class SafeToSpend {
     required this.remainingDays,
     required this.pool,
     required this.basis,
+    required this.periodPool,
+    required this.periodPerDay,
+    required this.periodSpent,
+    required this.periodDays,
+    required this.paidBills,
   });
 
+  /// Jatah harian yang menyesuaikan sisa pool dan sisa hari.
   final double perDay;
   final double todaySpent;
   final double todayLeft;
   final int remainingDays;
   final double pool;
+
+  /// `income` bila hitungannya berdasar pemasukan, `balance` bila berdasar saldo.
   final String basis;
+
+  /// Total yang aman dipakai untuk seluruh periode, di luar tagihan dan tabungan.
+  final double periodPool;
+
+  /// Jatah harian tetap: [periodPool] dibagi jumlah hari dalam periode.
+  final double periodPerDay;
+
+  /// Belanja bebas yang sudah terpakai periode ini (tidak termasuk tagihan).
+  final double periodSpent;
+
+  final int periodDays;
+
+  /// Tagihan periode ini yang sudah dibayar.
+  final double paidBills;
+
+  /// Rencana periode hanya bermakna kalau ada pemasukan yang jadi patokan.
+  bool get hasPlan => basis == 'income';
+
+  /// Sisa dari rencana periode. Konsisten dengan [pool]: `pool = periodLeft + todaySpent`.
+  double get periodLeft => periodPool - periodSpent;
+
+  double get periodUsedRatio => periodPool <= 0 ? 1 : (periodSpent / periodPool).clamp(0, 1).toDouble();
 
   double get usedRatio => perDay <= 0 ? 1 : (todaySpent / perDay).clamp(0, 1).toDouble();
 }

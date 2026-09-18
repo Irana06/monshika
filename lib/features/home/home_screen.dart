@@ -79,6 +79,7 @@ class HomeScreen extends ConsumerWidget {
                   const _BalanceCard(),
                   const SizedBox(height: 12),
                   const _SafeToSpendCard(),
+                  const _PeriodPlanCard(),
                   if (settings.kakeiboMode) const _KakeiboPrompt(),
                   const _QuickActions(),
                   const _AccountsStrip(),
@@ -236,8 +237,8 @@ class _SafeToSpendCard extends ConsumerWidget {
                   safe.perDay <= 0
                       ? t.t('Jatah periode ini sudah habis. Coba tahan dulu pengeluarannya.', "This period's budget is used up. Try to hold off on spending.")
                       : t.t(
-                          'Jatah ${m(safe.perDay)}/hari · terpakai ${m(safe.todaySpent)} · ${safe.remainingDays} hari lagi',
-                          '${m(safe.perDay)}/day · spent ${m(safe.todaySpent)} · ${safe.remainingDays} days left',
+                          'Sisa dibagi ${safe.remainingDays} hari: ${m(safe.perDay)}/hari · terpakai ${m(safe.todaySpent)}',
+                          'Remainder over ${safe.remainingDays} days: ${m(safe.perDay)}/day · ${m(safe.todaySpent)} spent',
                         ),
                   style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
                 ),
@@ -253,12 +254,12 @@ class _SafeToSpendCard extends ConsumerWidget {
                 content: Text(
                   safe.basis == 'income'
                       ? t.t(
-                          'Pemasukan periode ini (atau rencana di Kakeibo) dikurangi target nabung, tagihan yang belum dibayar, dan pengeluaran sebelum hari ini. Sisanya dibagi rata ke hari yang tersisa.',
-                          "This period's income (or your Kakeibo plan) minus your savings goal, unpaid bills, and spending before today. What's left is split evenly over the remaining days.",
+                          'Angka ini sisa yang dibagi rata ke hari yang tersisa, jadi ikut bergerak tiap kamu hemat atau boros. Patokan tetapnya ada di kartu Total aman periode ini: pemasukan (atau rencana di Kakeibo) dikurangi target nabung dan semua tagihan periode ini, lalu dibagi jumlah hari.',
+                          "This number is what is left, split evenly over the days that remain, so it moves as you save or overspend. The fixed benchmark sits in the Safe to spend this period card: your income (or Kakeibo plan) minus your savings goal and every bill in the period, divided by the number of days.",
                         )
                       : t.t(
-                          'Karena belum ada pemasukan yang dicatat, hitungannya pakai saldo tunai, bank, dan e-wallet, dikurangi tagihan dan target nabung, lalu dibagi sisa hari di periode ini.',
-                          "Since no income is logged yet, it uses your cash, bank, and e-wallet balances minus bills and savings goal, split over the days left in this period.",
+                          'Karena belum ada pemasukan yang dicatat, hitungannya pakai saldo tunai, bank, dan e-wallet, dikurangi tagihan dan target nabung, lalu dibagi sisa hari di periode ini. Dompet tabungan tidak ikut dihitung karena uangnya sudah disisihkan.',
+                          "Since no income is logged yet, it uses your cash, bank, and e-wallet balances minus bills and savings goal, split over the days left in this period. Savings wallets stay out of it, since that money is already set aside.",
                         ),
                   style: AppTheme.sans(size: 14, color: WaColors.washiMuted),
                 ),
@@ -267,6 +268,73 @@ class _SafeToSpendCard extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Patokan tetap untuk seluruh periode: total yang aman dipakai dan jatah
+/// hariannya. Beda dengan kartu di atas yang menyesuaikan sisa hari.
+class _PeriodPlanCard extends ConsumerWidget {
+  const _PeriodPlanCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = S.of(context);
+    final safe = ref.watch(safeToSpendProvider);
+    final s = ref.watch(settingsProvider);
+    if (safe == null || !safe.hasPlan || safe.periodPool <= 0) return const SizedBox.shrink();
+    String m(double v, {bool compact = true}) =>
+        formatMoney(v, s.baseCurrency, compact: compact, hidden: s.hideBalance);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: WaCard(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KakeiboScreen())),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t.withJp('算', t.t('Total aman periode ini', 'Safe to spend this period')),
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                  ),
+                ),
+                Text(
+                  formatMoney(safe.periodPool, s.baseCurrency, hidden: s.hideBalance),
+                  style: AppTheme.serif(size: 18, weight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            InkBar(value: safe.periodUsedRatio),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t.t('Jatah ${m(safe.periodPerDay)}/hari · ${safe.periodDays} hari',
+                        '${m(safe.periodPerDay)}/day · ${safe.periodDays} days'),
+                    style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                  ),
+                ),
+                Text(
+                  t.t('terpakai ${m(safe.periodSpent)}', '${m(safe.periodSpent)} spent'),
+                  style: AppTheme.sans(size: 12, color: WaColors.washiMuted),
+                ),
+              ],
+            ),
+            if (safe.paidBills > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                t.t('Di luar tagihan ${m(safe.paidBills)} yang sudah dibayar',
+                    'Excludes ${m(safe.paidBills)} of bills already paid'),
+                style: AppTheme.sans(size: 11, color: WaColors.washiFaint),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

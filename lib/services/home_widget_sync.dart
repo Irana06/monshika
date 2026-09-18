@@ -107,6 +107,8 @@ abstract final class HomeWidgetSync {
     await HomeWidget.saveWidgetData<bool>('safe_over', safe.todayLeft < 0);
     await HomeWidget.saveWidgetData<int>('safe_ratio', (safe.usedRatio * 100).round());
     await HomeWidget.saveWidgetData<String>('today_spent', m(safe.todaySpent));
+    await HomeWidget.saveWidgetData<String>('safe_period_total', m(safe.periodPool, compact: true));
+    await HomeWidget.saveWidgetData<String>('safe_period_left', m(math.max(0, safe.periodLeft), compact: true));
     await HomeWidget.saveWidgetData<String>('updated', s.t('Diperbarui ${DateFormat('HH:mm').format(now)}', 'Updated ${DateFormat('HH:mm').format(now)}'));
     if (lastAction != null) await HomeWidget.saveWidgetData<String>('last_action', lastAction);
 
@@ -121,8 +123,16 @@ abstract final class HomeWidgetSync {
       'txt_btn_income': s.jp ? '+ 入' : s.t('+ Masuk', '+ In'),
       'txt_btn_quick': s.jp ? '速' : '⚡',
       'txt_safe_title': s.jp ? '今日 · ${s.t('aman dipakai', 'safe to spend')}' : s.t('Aman dipakai hari ini', 'Safe to spend today'),
-      'txt_per_day': s.t('Jatah ${m(math.max(0, safe.perDay))}/hari', '${m(math.max(0, safe.perDay))}/day'),
-      'txt_spent': s.t('Terpakai ${m(safe.todaySpent)}', 'Spent ${m(safe.todaySpent)}'),
+      'txt_per_day': safe.hasPlan
+          ? s.t('Jatah ${m(math.max(0, safe.periodPerDay), compact: true)}/hari',
+              '${m(math.max(0, safe.periodPerDay), compact: true)}/day')
+          : s.t('Sisa ${m(math.max(0, safe.perDay), compact: true)}/hari',
+              '${m(math.max(0, safe.perDay), compact: true)}/day left'),
+      'txt_spent': safe.hasPlan
+          ? s.t(
+              'Periode ${m(math.max(0, safe.periodLeft), compact: true)} dari ${m(safe.periodPool, compact: true)}',
+              '${m(math.max(0, safe.periodLeft), compact: true)} left of ${m(safe.periodPool, compact: true)}')
+          : s.t('Terpakai ${m(safe.todaySpent)}', 'Spent ${m(safe.todaySpent)}'),
       'txt_chart_title': s.jp ? '図 ${s.t('7 hari', '7 days')}' : s.t('7 hari terakhir', 'Last 7 days'),
       'txt_chart_empty': s.t('Buka Monshika untuk memuat grafik', 'Open Monshika to load the chart'),
       'txt_preset_empty': s.withJp('札', s.t('Buat preset di Monshika', 'Add presets in Monshika')),

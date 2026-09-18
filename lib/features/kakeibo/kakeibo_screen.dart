@@ -12,6 +12,7 @@ import '../../data/database/database.dart';
 import '../../l10n/strings.dart';
 import '../../providers/derived.dart';
 import '../../providers/providers.dart';
+import '../../services/finance.dart';
 
 /// Kakeibo: cara mencatat keuangan rumah tangga ala Jepang.
 /// Buat rencana di awal bulan, kelompokkan pengeluaran ke 4 jenis, lalu evaluasi di akhir bulan.
@@ -40,12 +41,16 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
     return _offset == 0 ? base : base.shift(_offset, 'monthly');
   }
 
-  void _load(KakeiboMonth? k, String key) {
+  void _load(KakeiboMonth? k, String key, {double actualIncome = 0, double autoFixed = 0}) {
     if (_loadedFor == key) return;
     _loadedFor = key;
     String v(double? x) => x == null || x == 0 ? '' : x.toStringAsFixed(0);
-    _income.text = v(k?.plannedIncome);
-    _fixed.text = v(k?.fixedCosts);
+    // Belum pernah diisi, pakai angka yang sudah diketahui aplikasi supaya
+    // rencana di sini sejalan dengan hitungan aman dipakai di beranda.
+    final storedIncome = k?.plannedIncome ?? 0;
+    final storedFixed = k?.fixedCosts ?? 0;
+    _income.text = v(storedIncome > 0 ? storedIncome : actualIncome);
+    _fixed.text = v(storedFixed > 0 ? storedFixed : autoFixed);
     _savings.text = v(k?.savingsTarget);
     _intention.text = k?.intention ?? '';
     _rSaved.text = k?.reflectionSaved ?? '';
@@ -77,12 +82,32 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
     final range = _range;
     final key = fmtMonthKey(range.start);
     final entry = ref.watch(kakeiboMonthProvider(key));
-    if (entry.hasValue) _load(entry.value, key);
     final f = ref.watch(financeProvider);
     final txs = (ref.watch(yearTransactionsProvider).value ?? const <TxEntry>[]).where((x) => range.contains(x.date)).toList();
     final sum = f.summarize(txs);
     final pillars = f.pillarBreakdown(txs);
     final cur = s.baseCurrency;
+
+    // Tagihan periode ini: yang sudah dibayar (dibaca dari transaksi) ditambah
+    // yang belum. Dipakai sebagai isian awal biaya tetap supaya angkanya sama
+    // dengan hitungan aman dipakai di beranda.
+    final paidBills = txs
+        .where((x) =>
+            x.type == 'expense' &&
+            f.countsInStats(x) &&
+            (x.recurringId != null || x.installmentId != null || x.debtId != null))
+        .fold(0.0, (v, x) => v + f.txBase(x));
+    final pendingBills = range.contains(dateOnly(DateTime.now()))
+        ? upcomingBills(
+            recurrings: ref.watch(recurringsProvider).value ?? const [],
+            installments: ref.watch(installmentsProvider).value ?? const [],
+            debts: ref.watch(debtsProvider).value ?? const [],
+            debtPaid: ref.watch(debtPaidProvider).value ?? const {},
+            accounts: ref.watch(accountMapProvider),
+            until: range.end,
+          ).fold(0.0, (v, b) => v + f.toBase(b.amount, b.currency))
+        : 0.0;
+    if (entry.hasValue) _load(entry.value, key, actualIncome: sum.income, autoFixed: paidBills + pendingBills);
 
     final planned = parseAmount(_income.text) ?? 0;
     final fixed = parseAmount(_fixed.text) ?? 0;
