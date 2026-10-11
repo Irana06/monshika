@@ -81,10 +81,14 @@ class _CatList extends ConsumerWidget {
 }
 
 class CategoryFormScreen extends ConsumerStatefulWidget {
-  const CategoryFormScreen({super.key, required this.type, this.existing});
+  const CategoryFormScreen({super.key, required this.type, this.existing, this.initialParentId});
 
   final String type;
   final TxCategory? existing;
+
+  /// Kategori induk yang sudah dipilih sebelumnya, dipakai saat membuat
+  /// subkategori langsung dari pemilih kategori.
+  final int? initialParentId;
 
   @override
   ConsumerState<CategoryFormScreen> createState() => _CategoryFormScreenState();
@@ -94,14 +98,14 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
   late final _name = TextEditingController(text: widget.existing?.name ?? '');
   late String _icon = widget.existing?.icon ?? '他';
   late int _color = widget.existing?.color ?? WaColors.shu.toARGB32();
-  late int? _parentId = widget.existing?.parentId;
+  late int? _parentId = widget.existing?.parentId ?? widget.initialParentId;
   late String? _pillar = widget.existing?.pillar ?? (widget.type == 'expense' ? 'needs' : null);
   late bool _archived = widget.existing?.archived ?? false;
 
   Future<void> _save() async {
     final s = S.of(context);
     if (_name.text.trim().isEmpty) return showSnack(context, s.t('Nama kategori belum diisi', 'Give the category a name'));
-    await ref.read(databaseProvider).saveCategory(CategoriesCompanion(
+    final id = await ref.read(databaseProvider).saveCategory(CategoriesCompanion(
           id: widget.existing == null ? const Value.absent() : Value(widget.existing!.id),
           name: Value(_name.text.trim()),
           type: Value(widget.type),
@@ -111,7 +115,8 @@ class _CategoryFormScreenState extends ConsumerState<CategoryFormScreen> {
           pillar: Value(widget.type == 'expense' ? _pillar : null),
           archived: Value(_archived),
         ));
-    if (mounted) Navigator.pop(context);
+    // Id dikembalikan supaya pemanggilnya bisa langsung memilih kategori baru.
+    if (mounted) Navigator.pop(context, id);
   }
 
   Future<void> _delete() async {

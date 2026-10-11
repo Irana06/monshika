@@ -508,7 +508,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   controller: _note,
                   textCapitalization: TextCapitalization.sentences,
                   onTap: () => setState(() => _showPad = false),
-                  decoration: InputDecoration(hintText: t.note, prefixIcon: const Icon(Icons.edit_note)),
+                  decoration: InputDecoration(
+                    hintText: _type == 'expense'
+                        ? t.t('Beli apa? (opsional)', 'What did you buy? (optional)')
+                        : t.noteOptional,
+                    prefixIcon: const Icon(Icons.edit_note),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 if (_type != 'transfer')

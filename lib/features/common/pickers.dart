@@ -10,6 +10,7 @@ import '../../data/database/database.dart';
 import '../../data/database/seed.dart';
 import '../../l10n/strings.dart';
 import '../../providers/providers.dart';
+import '../categories/categories_screen.dart';
 
 Future<int?> showAccountPicker(
   BuildContext context,
@@ -101,6 +102,19 @@ class _CategoryPickerSheet extends ConsumerStatefulWidget {
 class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
   int? _expanded;
 
+  /// Buka form kategori tanpa menutup form transaksi yang sedang diisi.
+  /// Kategori yang baru dibuat langsung terpilih.
+  Future<void> _newCategory() async {
+    final id = await Navigator.push<int>(
+      context,
+      MaterialPageRoute<int>(
+        builder: (_) => CategoryFormScreen(type: widget.type, initialParentId: _expanded),
+      ),
+    );
+    if (!mounted || id == null) return;
+    Navigator.pop(context, id);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -181,6 +195,19 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
               ],
             ),
           ],
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _newCategory,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(
+                _expanded == null
+                    ? s.t('Kategori baru', 'New category')
+                    : s.t('Subkategori baru di sini', 'New subcategory here'),
+              ),
+            ),
+          ),
         ],
       ),
     );
