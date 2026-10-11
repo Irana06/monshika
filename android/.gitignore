@@ -1,8 +1,7 @@
-gradle-wrapper.jar
+# Gradle wrapper sengaja ikut di-commit supaya build di CI dan di mesin
+# baru pakai versi Gradle yang sama persis.
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/

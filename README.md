@@ -108,12 +108,31 @@ Buat `android/key.properties` (tidak di-commit):
 storePassword=...
 keyPassword=...
 keyAlias=monshika
-storeFile=E:/path/ke/monshika-release.jks
+storeFile=D:/path/ke/monshika-release.jks
 ```
 
 ```bash
 flutter build apk --release
 ```
+
+### Rilis
+
+Rilis dibangun di GitHub Actions, jadi tidak perlu build di komputer sendiri.
+Naikkan versi di `pubspec.yaml`, commit, lalu dorong tag yang sama:
+
+```bash
+git tag v1.1.1 && git push origin v1.1.1
+```
+
+Workflow akan menganalisis, menjalankan tes, membangun APK per ABI,
+memeriksa sidik jari tanda tangannya, lalu membuat rilis beserta ketiga APK.
+Tag yang tidak sama dengan versi di `pubspec.yaml` akan ditolak.
+
+Catatan rilis diambil dari `docs/release-notes/<tag>.md` kalau ada, kalau
+tidak dari pesan commit terakhir.
+
+Workflow butuh empat secret di repo: `KEYSTORE_BASE64`, `STORE_PASSWORD`,
+`KEY_PASSWORD`, dan `KEY_ALIAS`.
 
 ---
 

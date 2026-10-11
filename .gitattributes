@@ -1,0 +1,7 @@
+# gradlew dijalankan di Linux saat build di CI, jadi akhiran barisnya harus
+# tetap LF walaupun di-checkout di Windows.
+android/gradlew text eol=lf
+android/gradlew.bat text eol=crlf
+*.jar binary
+*.jks binary
+*.keystore binary
