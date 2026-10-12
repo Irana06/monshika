@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../l10n/strings.dart';
+import '../../services/feedback_service.dart';
 
 const kSaweriaUrl = 'https://saweria.co/shicomp';
 const kTrakteerUrl = 'https://trakteer.id/Yushika_';
@@ -24,6 +25,16 @@ Future<void> _open(BuildContext context, String url, String shown) async {
       context,
       S.of(context).t('Link tidak bisa dibuka. Buka $shown di browser.', "Couldn't open the link. Visit $shown in your browser."),
     );
+  }
+}
+
+/// Buka WhatsApp dengan pesan masukan yang sudah berisi keterangan teknis.
+Future<void> sendFeedback(BuildContext context) async {
+  final s = S.of(context);
+  final ok = await FeedbackService.openWhatsApp(s);
+  if (!ok && context.mounted) {
+    showSnack(context, s.t('WhatsApp tidak bisa dibuka. Hubungi 0822 3336 5018.',
+        "Couldn't open WhatsApp. Reach me at +62 822 3336 5018."));
   }
 }
 
@@ -73,6 +84,34 @@ class SupportCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          Row(children: [
+            KanjiBadge(glyph: '声', color: WaColors.secondary, size: 38),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t.t('Ada bug atau usul?', 'Found a bug, or have an idea?'),
+                    style: AppTheme.sans(size: 13, weight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  t.t('Pesannya terbuka dulu di WhatsApp, bisa kamu baca dan ubah sebelum dikirim.',
+                      'The message opens in WhatsApp first, so you can read and edit it before sending.'),
+                  style: AppTheme.sans(size: 11, color: WaColors.washiMuted, height: 1.4),
+                ),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => sendFeedback(context),
+              icon: const Icon(Icons.chat_outlined, size: 18),
+              label: Text(t.t('Kirim masukan', 'Send feedback')),
+            ),
           ),
           const SizedBox(height: 10),
           Center(

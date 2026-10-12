@@ -14,9 +14,11 @@ import 'data/database/database.dart';
 import 'features/quick_add/quick_add_app.dart';
 import 'l10n/strings.dart';
 import 'providers/providers.dart';
+import 'services/feedback_service.dart';
 
 Future<ProviderScope> _bootstrap(Widget child) async {
   WidgetsFlutterBinding.ensureInitialized();
+  FeedbackService.install();
   await initializeDateFormatting();
   final prefs = await SharedPreferences.getInstance();
   S.current = S.fromPrefs(prefs);

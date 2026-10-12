@@ -386,6 +386,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => openTrakteer(context),
             ),
             ListTile(
+              leading: Icon(Icons.chat_outlined, color: WaColors.secondary),
+              title: Text(t.t('Kirim masukan', 'Send feedback')),
+              subtitle: Text(
+                t.t('Lewat WhatsApp, lengkap dengan versi dan tipe HP', 'Via WhatsApp, with your version and device'),
+                style: muted,
+              ),
+              trailing: Icon(Icons.open_in_new, size: 18, color: WaColors.washiMuted),
+              onTap: () => sendFeedback(context),
+            ),
+            ListTile(
               leading: const Icon(Icons.description_outlined),
               title: Text(t.t('Lisensi', 'License')),
               subtitle: Text(
