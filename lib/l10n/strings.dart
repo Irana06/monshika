@@ -113,10 +113,16 @@ class S {
 
 /// Menyediakan [S] ke seluruh pohon widget.
 class SScope extends InheritedWidget {
-  const SScope({super.key, required this.s, required super.child});
+  const SScope({super.key, required this.s, required this.brightness, required super.child});
 
   final S s;
 
+  /// Mode tampilan yang sedang aktif. Ikut di sini supaya widget yang dipasang
+  /// sebagai `const` tetap digambar ulang saat temanya berganti; warna dibaca
+  /// dari WaColors yang bukan InheritedWidget, jadi tanpa ini mereka tertinggal.
+  final Brightness brightness;
+
   @override
-  bool updateShouldNotify(SScope oldWidget) => oldWidget.s.en != s.en || oldWidget.s.jp != s.jp;
+  bool updateShouldNotify(SScope oldWidget) =>
+      oldWidget.s.en != s.en || oldWidget.s.jp != s.jp || oldWidget.brightness != brightness;
 }

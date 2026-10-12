@@ -39,7 +39,7 @@ class QuickAddApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      builder: (context, child) => SScope(s: s, child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => SScope(s: s, brightness: WaColors.current.brightness, child: child ?? const SizedBox.shrink()),
       home: const _QuickAddHost(),
     );
   }

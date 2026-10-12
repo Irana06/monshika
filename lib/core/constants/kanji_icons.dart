@@ -83,6 +83,7 @@ const kKanjiIcons = <KanjiIcon>[
 
 /// Glyph lain yang dipakai di UI (menu, header, status) → ikon biasa.
 const Map<String, IconData> _extraGlyphIcons = {
+  '声': Icons.chat_outlined,
   '調': Icons.tune,
   '算': Icons.pie_chart,
   '簿': Icons.menu_book,

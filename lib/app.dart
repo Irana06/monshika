@@ -162,7 +162,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      builder: (context, child) => SScope(s: s, child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => SScope(s: s, brightness: WaColors.current.brightness, child: child ?? const SizedBox.shrink()),
       home: AnimatedSwitcher(duration: const Duration(milliseconds: 350), child: home),
     );
   }
