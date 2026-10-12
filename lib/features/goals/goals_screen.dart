@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:math' as math;
 
 import 'package:drift/drift.dart' show Value;
@@ -136,12 +140,12 @@ class GoalsScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       Row(children: [
-                        if (g.pinned) const Icon(Icons.push_pin, size: 14, color: WaColors.accent),
+                        if (g.pinned) Icon(Icons.push_pin, size: 14, color: WaColors.accent),
                         const Spacer(),
                         if (g.completedAt != null)
                           t.jp
                               ? Text('達成', style: AppTheme.serif(size: 12, color: WaColors.income, weight: FontWeight.w700))
-                              : const Icon(Icons.check_circle, size: 16, color: WaColors.income),
+                              : Icon(Icons.check_circle, size: 16, color: WaColors.income),
                       ]),
                       Expanded(child: FittedBox(child: Omamori(progress: p, color: Color(g.color), glyph: g.icon))),
                       const SizedBox(height: 8),
@@ -216,7 +220,7 @@ class GoalDetailScreen extends ConsumerWidget {
           if (plan != null) ...[
             const SizedBox(height: 12),
             WaCard(child: Row(children: [
-              const Icon(Icons.lightbulb_outline, color: WaColors.accent),
+              Icon(Icons.lightbulb_outline, color: WaColors.accent),
               const SizedBox(width: 10),
               Expanded(child: Text(plan, style: AppTheme.sans(size: 13))),
             ])),
@@ -312,7 +316,7 @@ class GoalDetailScreen extends ConsumerWidget {
             const SizedBox(height: 10),
             PickerTile(
               leading: acc == null
-                  ? const Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
+                  ? Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
                   : KanjiBadge(glyph: acc.icon, color: Color(acc.color), size: 34),
               title: acc?.name ?? t.t('Tanpa dompet (cuma dicatat)', 'No wallet (just record it)'),
               subtitle: deposit
@@ -451,7 +455,7 @@ class _GoalFormScreenState extends ConsumerState<GoalFormScreen> {
           LabeledField(
             label: t.t('Tenggat (opsional)', 'Deadline (optional)'),
             child: PickerTile(
-              leading: const Icon(Icons.event, color: WaColors.accent),
+              leading: Icon(Icons.event, color: WaColors.accent),
               title: _deadline == null ? t.t('Tanpa tenggat', 'No deadline') : fmtDateLong(_deadline!),
               onTap: () async {
                 final d = await showDatePicker(

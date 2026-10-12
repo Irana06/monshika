@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -249,8 +253,8 @@ class _CatTile extends StatelessWidget {
                     bottom: -4,
                     child: Container(
                       padding: const EdgeInsets.all(1),
-                      decoration: const BoxDecoration(color: WaColors.keshizumi, shape: BoxShape.circle),
-                      child: const Icon(Icons.more_horiz, size: 14, color: WaColors.washiMuted),
+                      decoration: BoxDecoration(color: WaColors.keshizumi, shape: BoxShape.circle),
+                      child: Icon(Icons.more_horiz, size: 14, color: WaColors.washiMuted),
                     ),
                   ),
               ],

@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -356,7 +360,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.currency_exchange, size: 18, color: WaColors.accent),
+            Icon(Icons.currency_exchange, size: 18, color: WaColors.accent),
             const SizedBox(width: 8),
             Expanded(
               child: Text(

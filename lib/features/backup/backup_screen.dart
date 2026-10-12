@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -239,7 +243,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 WaCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      const Icon(Icons.cloud_done_outlined, color: WaColors.income),
+                      Icon(Icons.cloud_done_outlined, color: WaColors.income),
                       const SizedBox(width: 10),
                       Expanded(child: Text(s.driveEmail!, style: AppTheme.sans(weight: FontWeight.w600))),
                       TextButton(
@@ -487,8 +491,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   borderColor: WaColors.expense.withValues(alpha: 0.4),
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: ListTile(
-                    leading: const Icon(Icons.delete_forever, color: WaColors.expense),
-                    title: Text(t.t('Hapus semua data', 'Delete all data'), style: const TextStyle(color: WaColors.expense)),
+                    leading: Icon(Icons.delete_forever, color: WaColors.expense),
+                    title: Text(t.t('Hapus semua data', 'Delete all data'), style: TextStyle(color: WaColors.expense)),
                     subtitle: Text(t.t('Kategori bawaan akan dibuat lagi', 'Default categories will be recreated')),
                     onTap: () async {
                       final word = t.t('HAPUS', 'DELETE');

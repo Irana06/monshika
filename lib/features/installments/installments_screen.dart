@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -238,7 +242,7 @@ class _InstallmentFormScreenState extends ConsumerState<InstallmentFormScreen> {
             label: t.t('Dibayar dari dompet (opsional)', 'Paid from wallet (optional)'),
             child: PickerTile(
               leading: acc == null
-                  ? const Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
+                  ? Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
                   : KanjiBadge(glyph: acc.icon, color: Color(acc.color), size: 34),
               title: acc?.name ?? t.t('Pilih saat bayar', 'Choose when paying'),
               onTap: () async {

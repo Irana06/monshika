@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -63,7 +67,7 @@ class _CatList extends ConsumerWidget {
           subtitle: type == 'expense' && c.pillar != null
               ? Text(s.withJp(pillarGlyph(c.pillar!), pillarLabel(s, c.pillar!)), style: AppTheme.sans(size: 11, color: WaColors.washiMuted))
               : null,
-          trailing: c.archived ? const Icon(Icons.inventory_2_outlined, size: 18) : const Icon(Icons.chevron_right, color: WaColors.washiFaint),
+          trailing: c.archived ? const Icon(Icons.inventory_2_outlined, size: 18) : Icon(Icons.chevron_right, color: WaColors.washiFaint),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryFormScreen(type: type, existing: c))),
         );
 

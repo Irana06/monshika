@@ -1,24 +1,118 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 
-/// Palet "Yoru" — warna tradisional Jepang (和色) dalam nuansa malam.
+/// Satu set warna dasar untuk satu mode tampilan.
+///
+/// Warna kategori di [WaColors] tidak ikut berubah antar mode, karena nilainya
+/// tersimpan di database bersama tiap kategori, dompet, dan budget.
+class WaPalette {
+  const WaPalette({
+    required this.brightness,
+    required this.sumi,
+    required this.keshizumi,
+    required this.surfaceHigh,
+    required this.border,
+    required this.washi,
+    required this.washiMuted,
+    required this.washiFaint,
+    required this.expense,
+    required this.income,
+    required this.transfer,
+    required this.accent,
+    required this.secondary,
+  });
+
+  final Brightness brightness;
+
+  /// Latar layar.
+  final Color sumi;
+
+  /// Latar kartu.
+  final Color keshizumi;
+
+  /// Latar yang sedikit lebih menonjol dari kartu.
+  final Color surfaceHigh;
+
+  final Color border;
+
+  /// Teks utama.
+  final Color washi;
+  final Color washiMuted;
+  final Color washiFaint;
+
+  final Color expense;
+  final Color income;
+  final Color transfer;
+  final Color accent;
+  final Color secondary;
+
+  bool get isLight => brightness == Brightness.light;
+}
+
+/// Mode gelap, nuansa kayu dan kertas tua.
+const kWaDark = WaPalette(
+  brightness: Brightness.dark,
+  sumi: Color(0xFF1C1411),
+  keshizumi: Color(0xFF261B16),
+  surfaceHigh: Color(0xFF33251F),
+  border: Color(0xFF3D2C25),
+  washi: Color(0xFFF7DECA),
+  washiMuted: Color(0xFFC9AE9F),
+  washiFaint: Color(0xFFA08B7D),
+  expense: Color(0xFFE0605A),
+  income: Color(0xFF9CC48F),
+  transfer: Color(0xFF9C86C2),
+  accent: Color(0xFFE35A57),
+  secondary: Color(0xFF7E9AC8),
+);
+
+/// Mode terang, nuansa washi. Merah dan hijaunya digelapkan supaya kontrasnya
+/// tetap terbaca di atas kertas terang.
+const kWaLight = WaPalette(
+  brightness: Brightness.light,
+  sumi: Color(0xFFFBF5EF),
+  keshizumi: Color(0xFFFFFCF9),
+  surfaceHigh: Color(0xFFF5E9DE),
+  border: Color(0xFFEDDCCD),
+  washi: Color(0xFF35231C),
+  washiMuted: Color(0xFF76625A),
+  washiFaint: Color(0xFF9A8378),
+  expense: Color(0xFFC0392F),
+  income: Color(0xFF4F7A43),
+  transfer: Color(0xFF6B52A3),
+  accent: Color(0xFFD53B3A),
+  secondary: Color(0xFF39508C),
+);
+
+/// Palet "Wa" (和色), warna tradisional Jepang.
+///
+/// Warna dasarnya mengikuti [current], yang diganti saat mode tampilan berubah.
+/// Pemanggilannya tetap `WaColors.sumi` seperti biasa.
 abstract final class WaColors {
+  static WaPalette current = kWaDark;
+
+  static bool get isLight => current.isLight;
+
   // Dasar
-  static const sumi = Color(0xFF0F0F14); // 墨 latar
-  static const keshizumi = Color(0xFF17171E); // 消炭 kartu
-  static const surfaceHigh = Color(0xFF1F1F28);
-  static const border = Color(0xFF2A2A35);
-  static const washi = Color(0xFFEDE6D6); // 和紙 teks
-  static const washiMuted = Color(0xFF9A948A);
-  static const washiFaint = Color(0xFF5E5A55);
+  static Color get sumi => current.sumi;
+  static Color get keshizumi => current.keshizumi;
+  static Color get surfaceHigh => current.surfaceHigh;
+  static Color get border => current.border;
+  static Color get washi => current.washi;
+  static Color get washiMuted => current.washiMuted;
+  static Color get washiFaint => current.washiFaint;
 
   // Semantik
-  static const expense = Color(0xFFE0605A); // 紅 beni (lebih terang untuk mode gelap)
-  static const income = Color(0xFF9CC48F); // 抹茶 matcha
-  static const transfer = Color(0xFF9C86C2); // 藤 fuji
-  static const accent = Color(0xFFC9A45C); // 金 kin
-  static const secondary = Color(0xFF5B7DB1); // 藍 ai
+  static Color get expense => current.expense;
+  static Color get income => current.income;
+  static Color get transfer => current.transfer;
+  static Color get accent => current.accent;
+  static Color get secondary => current.secondary;
 
-  // Palet kategori
+  // Palet kategori. Tetap sama di kedua mode karena tersimpan di database.
   static const beni = Color(0xFFD9534A);
   static const shu = Color(0xFFE8743B);
   static const kohaku = Color(0xFFC98B3C);
@@ -44,6 +138,14 @@ abstract final class WaColors {
     '紅 Beni', '朱 Shu', '琥珀 Kohaku', '金 Kin', '山吹 Yamabuki', '抹茶 Matcha', '若竹 Wakatake',
     '浅葱 Asagi', '藍 Ai', '瑠璃 Ruri', '藤 Fuji', '桜 Sakura', '紅葉 Momiji', '鼠 Nezumi', '茶 Cha',
   ];
+
+  /// Warna kategori dibuat agak gelap di mode terang supaya tetap terbaca
+  /// di atas latar kertas.
+  static Color onSurface(Color c) {
+    if (!isLight) return c;
+    final h = HSLColor.fromColor(c);
+    return h.withLightness((h.lightness * 0.74).clamp(0.0, 1.0)).toColor();
+  }
 
   static Color forType(String type) => switch (type) {
         'income' => income,

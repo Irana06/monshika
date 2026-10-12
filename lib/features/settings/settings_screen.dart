@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -75,7 +79,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
         children: [
           const UpdateBanner(),
-          _section('言', t.t('Bahasa & gaya', 'Language & style'), [
+          _section('言', t.t('Tampilan & bahasa', 'Appearance & language'), [
             ListTile(
               leading: const Icon(Icons.translate),
               title: Text(t.t('Bahasa', 'Language')),
@@ -90,6 +94,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   if (v == null || v == s.language) return;
                   await _n.setLanguage(v);
                   await _reschedule();
+                  await _refreshWidgets();
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_6_outlined),
+              title: Text(t.t('Tampilan', 'Appearance')),
+              trailing: DropdownButton<String>(
+                value: s.themeMode,
+                underline: const SizedBox.shrink(),
+                items: [
+                  DropdownMenuItem(value: 'system', child: Text(t.t('Ikut HP', 'System'))),
+                  DropdownMenuItem(value: 'light', child: Text(t.t('Terang', 'Light'))),
+                  DropdownMenuItem(value: 'dark', child: Text(t.t('Gelap', 'Dark'))),
+                ],
+                onChanged: (v) async {
+                  if (v == null || v == s.themeMode) return;
+                  await _n.setThemeMode(v);
                   await _refreshWidgets();
                 },
               ),
@@ -350,11 +372,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ]),
           _section('印', t.t('Tentang', 'About'), [
             ListTile(
-              leading: const Icon(Icons.favorite_outline, color: WaColors.accent),
+              leading: Icon(Icons.favorite_outline, color: WaColors.accent),
               title: Text(t.t('Dukung lewat Saweria', 'Support on Saweria')),
               subtitle: Text('saweria.co/shicomp', style: muted),
-              trailing: const Icon(Icons.open_in_new, size: 18, color: WaColors.washiMuted),
+              trailing: Icon(Icons.open_in_new, size: 18, color: WaColors.washiMuted),
               onTap: () => openSaweria(context),
+            ),
+            ListTile(
+              leading: Icon(Icons.local_cafe_outlined, color: WaColors.accent),
+              title: Text(t.t('Dukung lewat Trakteer', 'Support on Trakteer')),
+              subtitle: Text('trakteer.id/Yushika_', style: muted),
+              trailing: Icon(Icons.open_in_new, size: 18, color: WaColors.washiMuted),
+              onTap: () => openTrakteer(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(t.t('Lisensi', 'License')),
+              subtitle: Text(
+                t.t('GNU GPL-3.0 · kode sumber terbuka di GitHub', 'GNU GPL-3.0 · source available on GitHub'),
+                style: muted,
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.info_outline),

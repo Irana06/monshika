@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -214,7 +218,7 @@ class UpdateBanner extends ConsumerWidget {
               Text(t.t('Ketuk untuk lihat yang baru dan perbarui', "Tap to see what's new and update"), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
             ]),
           ),
-          const Icon(Icons.chevron_right, color: WaColors.washiMuted),
+          Icon(Icons.chevron_right, color: WaColors.washiMuted),
         ]),
       ),
     );

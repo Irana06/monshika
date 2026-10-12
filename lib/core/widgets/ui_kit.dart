@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -284,7 +288,10 @@ class AmountText extends StatelessWidget {
 }
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({super.key, required this.title, this.jp, this.action, this.onAction});
+  const SectionHeader({super.key, required this.title, this.jp, this.action, this.onAction, this.dense = false});
+
+  /// Jarak atas bawah dipersempit, untuk daftar yang berisi banyak grup.
+  final bool dense;
 
   final String title;
 
@@ -297,7 +304,7 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final showJp = jp != null && S.of(context).jp;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
+      padding: EdgeInsets.fromLTRB(4, dense ? 14 : 20, 4, dense ? 6 : 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -516,8 +523,9 @@ class ColorPickerRow extends StatelessWidget {
 }
 
 /// Pilih ikon. Nilai yang disimpan tetap glyph, tampilannya mengikuti gaya Jepang.
-Future<String?> pickKanji(BuildContext context, {String? current, Color color = WaColors.accent}) {
+Future<String?> pickKanji(BuildContext context, {String? current, Color? color}) {
   final s = S.of(context);
+  final tint = color ?? WaColors.accent;
   final custom = TextEditingController();
   return showModalBottomSheet<String>(
     context: context,
@@ -566,7 +574,7 @@ Future<String?> pickKanji(BuildContext context, {String? current, Color color = 
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          GlyphIcon(k.glyph, color: color, size: 26),
+                          GlyphIcon(k.glyph, color: tint, size: 26),
                           const SizedBox(height: 4),
                           Text(
                             k.meaning(s),
@@ -608,7 +616,7 @@ Future<String?> pickCurrency(BuildContext context, {String? current}) {
               leading: Text(c.flag, style: const TextStyle(fontSize: 24)),
               title: Text('${c.code} (${c.symbol})'),
               subtitle: Text(c.name(s), style: AppTheme.sans(size: 12, color: WaColors.washiMuted)),
-              trailing: c.code == current ? const Icon(Icons.check, color: WaColors.accent) : null,
+              trailing: c.code == current ? Icon(Icons.check, color: WaColors.accent) : null,
               onTap: () => Navigator.pop(ctx, c.code),
             ),
         ],
@@ -669,7 +677,7 @@ class PickerTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.expand_more, color: WaColors.washiMuted),
+          Icon(Icons.expand_more, color: WaColors.washiMuted),
         ],
       ),
     );

@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,11 +11,19 @@ import '../../core/widgets/ui_kit.dart';
 import '../../l10n/strings.dart';
 
 const kSaweriaUrl = 'https://saweria.co/shicomp';
+const kTrakteerUrl = 'https://trakteer.id/Yushika_';
 
-Future<void> openSaweria(BuildContext context) async {
-  final ok = await launchUrl(Uri.parse(kSaweriaUrl), mode: LaunchMode.externalApplication);
+Future<void> openSaweria(BuildContext context) => _open(context, kSaweriaUrl, 'saweria.co/shicomp');
+
+Future<void> openTrakteer(BuildContext context) => _open(context, kTrakteerUrl, 'trakteer.id/Yushika_');
+
+Future<void> _open(BuildContext context, String url, String shown) async {
+  final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   if (!ok && context.mounted) {
-    showSnack(context, S.of(context).t('Link tidak bisa dibuka. Buka saweria.co/shicomp di browser.', "Couldn't open the link. Visit saweria.co/shicomp in your browser."));
+    showSnack(
+      context,
+      S.of(context).t('Link tidak bisa dibuka. Buka $shown di browser.', "Couldn't open the link. Visit $shown in your browser."),
+    );
   }
 }
 
@@ -28,7 +40,7 @@ class SupportCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const KanjiBadge(glyph: '茶', color: WaColors.accent, size: 46),
+            KanjiBadge(glyph: '茶', color: WaColors.accent, size: 46),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -43,13 +55,24 @@ class SupportCard extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => openSaweria(context),
-              icon: const Icon(Icons.favorite_outline, size: 18),
-              label: Text(t.t('Dukung lewat Saweria', 'Support on Saweria')),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => openSaweria(context),
+                  icon: const Icon(Icons.favorite_outline, size: 18),
+                  label: const Text('Saweria'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => openTrakteer(context),
+                  icon: const Icon(Icons.local_cafe_outlined, size: 18),
+                  label: const Text('Trakteer'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Center(

@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,7 +76,7 @@ Future<void> _editTag(BuildContext context, WidgetRef ref, Tag? tag) async {
                   await ref.read(databaseProvider).deleteTag(tag.id);
                   if (ctx.mounted) Navigator.pop(ctx, false);
                 },
-                child: Text(t.delete, style: const TextStyle(color: WaColors.expense)),
+                child: Text(t.delete, style: TextStyle(color: WaColors.expense)),
               ),
             const Spacer(),
             FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t.save)),

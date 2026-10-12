@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -7,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../data/database/database.dart';
+import 'settings.dart';
+import '../core/theme/app_colors.dart';
 import '../l10n/strings.dart';
 import 'backup_service.dart';
 import 'drive_service.dart';
@@ -25,6 +31,7 @@ Future<void> _prepareStrings() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.reload();
   S.current = S.fromPrefs(prefs);
+  WaColors.current = AppSettings.paletteFromPrefs(prefs);
   Intl.defaultLocale = S.current.dateLocale;
 }
 

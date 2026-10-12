@@ -134,6 +134,20 @@ tidak dari pesan commit terakhir.
 Workflow butuh empat secret di repo: `KEYSTORE_BASE64`, `STORE_PASSWORD`,
 `KEY_PASSWORD`, dan `KEY_ALIAS`.
 
+## Lisensi
+
+Monshika dilisensikan di bawah **GNU General Public License v3.0**. Lihat [LICENSE](LICENSE).
+
+Singkatnya: kamu bebas memakai, mempelajari, mengubah, dan menyebarkan ulang
+Monshika, termasuk untuk keperluan komersial, **dengan syarat** karya turunannya
+ikut dirilis dengan lisensi yang sama dan kode sumbernya tetap terbuka. Merilis
+versi tertutup dari kode ini melanggar lisensinya.
+
+## Dukungan
+
+Monshika gratis dan tanpa iklan. Kalau terbantu, boleh traktir lewat
+[Saweria](https://saweria.co/shicomp) atau [Trakteer](https://trakteer.id/Yushika_).
+
 ---
 
-© 2026 Shicomp
+Copyright © 2026 Irana06 · Shicomp

@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -85,11 +89,11 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                           Flexible(child: Text(a.name, style: AppTheme.sans(size: 15, weight: FontWeight.w600))),
                           if (a.archived) ...[
                             const SizedBox(width: 6),
-                            const Icon(Icons.inventory_2_outlined, size: 14, color: WaColors.washiMuted),
+                            Icon(Icons.inventory_2_outlined, size: 14, color: WaColors.washiMuted),
                           ],
                           if (!a.includeInTotal) ...[
                             const SizedBox(width: 6),
-                            const Icon(Icons.visibility_off_outlined, size: 14, color: WaColors.washiMuted),
+                            Icon(Icons.visibility_off_outlined, size: 14, color: WaColors.washiMuted),
                           ],
                         ]),
                         subtitle: Text(

@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
@@ -177,7 +181,7 @@ class _SummaryTab extends ConsumerWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: maxY / 3,
-                  getDrawingHorizontalLine: (_) => const FlLine(color: WaColors.border, strokeWidth: 1, dashArray: [4, 4]),
+                  getDrawingHorizontalLine: (_) => FlLine(color: WaColors.border, strokeWidth: 1, dashArray: [4, 4]),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -513,7 +517,7 @@ class _TrendTab extends ConsumerWidget {
                 gridData: FlGridData(
                   drawVerticalLine: false,
                   horizontalInterval: maxY / 4,
-                  getDrawingHorizontalLine: (_) => const FlLine(color: WaColors.border, strokeWidth: 1, dashArray: [4, 4]),
+                  getDrawingHorizontalLine: (_) => FlLine(color: WaColors.border, strokeWidth: 1, dashArray: [4, 4]),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -655,7 +659,7 @@ class _CalendarTab extends ConsumerWidget {
                   children: [
                     Text('${day.day}', style: AppTheme.serif(size: 13, weight: FontWeight.w700)),
                     const Spacer(),
-                    if (income[idx] > 0) Container(width: 6, height: 6, decoration: const BoxDecoration(color: WaColors.income, shape: BoxShape.circle)),
+                    if (income[idx] > 0) Container(width: 6, height: 6, decoration: BoxDecoration(color: WaColors.income, shape: BoxShape.circle)),
                     if (v > 0)
                       FittedBox(
                         child: Text(formatMoney(v, s.baseCurrency, compact: true, symbol: false, hidden: s.hideBalance),

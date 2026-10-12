@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -256,7 +260,7 @@ class _DismissibleTx extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         color: WaColors.expense.withValues(alpha: 0.2),
-        child: const Icon(Icons.delete_outline, color: WaColors.expense),
+        child: Icon(Icons.delete_outline, color: WaColors.expense),
       ),
       confirmDismiss: (_) async => tx.debtId == null && tx.goalId == null
           ? true

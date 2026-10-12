@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -17,7 +21,7 @@ import '../../services/money_actions.dart';
 import '../common/pickers.dart';
 
 Widget _walletLeading(Account? acc) => acc == null
-    ? const Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
+    ? Icon(Icons.account_balance_wallet_outlined, color: WaColors.washiMuted)
     : KanjiBadge(glyph: acc.icon, color: Color(acc.color), size: 34);
 
 class DebtsScreen extends ConsumerWidget {
@@ -244,7 +248,7 @@ class DebtDetailScreen extends ConsumerWidget {
                 for (final p in payments)
                   ListTile(
                     dense: true,
-                    leading: const Icon(Icons.check_circle_outline, color: WaColors.income),
+                    leading: Icon(Icons.check_circle_outline, color: WaColors.income),
                     title: Text(formatMoney(p.amount, d.currency, hidden: hidden), style: AppTheme.sans(weight: FontWeight.w700)),
                     subtitle: Text('${fmtDate(p.date)}${p.note.isEmpty ? '' : ' · ${p.note}'}'),
                     trailing: IconButton(

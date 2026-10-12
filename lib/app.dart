@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:async';
 
 import 'package:drift/drift.dart' show TableUpdateQuery;
@@ -7,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/lock/lock_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -131,6 +136,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
     final s = settings.strings;
     S.current = s;
     Intl.defaultLocale = s.dateLocale;
+    WaColors.current = settings.paletteFor(MediaQuery.platformBrightnessOf(context));
 
     Widget home;
     if (!settings.onboardingDone) {
@@ -148,9 +154,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
       title: 'Monshika',
       debugShowCheckedModeBanner: false,
       navigatorKey: rootNavigatorKey,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.build(),
       locale: s.locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [

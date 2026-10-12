@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,18 +51,23 @@ class AppShell extends ConsumerWidget {
           children: const [HomeScreen(), TransactionsScreen(), StatsScreen(), MoreScreen()],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: GestureDetector(
-          onLongPress: () {
-            HapticFeedback.mediumImpact();
-            showQuickInputSheet(context);
-          },
-          child: FloatingActionButton(
-            heroTag: 'add-tx',
-            tooltip: s.t('Catat transaksi (tahan untuk catat cepat)', 'Add transaction (hold for quick add)'),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionFormScreen())),
-            child: const Icon(Icons.add, size: 30),
-          ),
-        ),
+        // Di tab Lainnya tombol ini menutupi menu dan tidak ada gunanya, karena
+        // layar itu daftar pengaturan, bukan tempat mencatat.
+        floatingActionButton: index == 3
+            ? null
+            : GestureDetector(
+                onLongPress: () {
+                  HapticFeedback.mediumImpact();
+                  showQuickInputSheet(context);
+                },
+                child: FloatingActionButton(
+                  heroTag: 'add-tx',
+                  tooltip: s.t('Catat transaksi (tahan untuk catat cepat)', 'Add transaction (hold for quick add)'),
+                  onPressed: () =>
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionFormScreen())),
+                  child: const Icon(Icons.add, size: 30),
+                ),
+              ),
         bottomNavigationBar: BottomAppBar(
           color: WaColors.keshizumi,
           surfaceTintColor: Colors.transparent,

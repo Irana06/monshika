@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -112,7 +116,7 @@ class CalcPad extends StatelessWidget {
               Expanded(
                 child: TextButton(
                   onPressed: onDone,
-                  child: const Icon(Icons.keyboard_arrow_down, color: WaColors.washiMuted),
+                  child: Icon(Icons.keyboard_arrow_down, color: WaColors.washiMuted),
                 ),
               ),
             ],
@@ -129,19 +133,20 @@ class CalcPad extends StatelessWidget {
     );
   }
 
-  Widget _key(String k, {int flex = 1, Color color = WaColors.washi}) {
+  Widget _key(String k, {int flex = 1, Color? color}) {
+    final tint = color ?? WaColors.washi;
     final label = switch (k) { '*' => '×', '/' => '÷', _ => k };
     return Expanded(
       flex: flex,
       child: SizedBox(
         height: 50,
         child: TextButton(
-          style: TextButton.styleFrom(foregroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: TextButton.styleFrom(foregroundColor: tint, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           onPressed: () {
             HapticFeedback.selectionClick();
             controller.input(k);
           },
-          child: Text(label, style: AppTheme.serif(size: k == '000' ? 18 : 24, weight: FontWeight.w600, color: color)),
+          child: Text(label, style: AppTheme.serif(size: k == '000' ? 18 : 24, weight: FontWeight.w600, color: tint)),
         ),
       ),
     );

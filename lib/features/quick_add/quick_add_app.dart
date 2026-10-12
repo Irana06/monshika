@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,12 +25,13 @@ class QuickAddApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
     S.current = s;
+    WaColors.current = ref.watch(settingsProvider).paletteFor(MediaQuery.platformBrightnessOf(context));
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       // Tema tetap solid. Hanya dialog catat cepat yang diberi latar gelap tembus
       // pandang lewat Scaffold-nya sendiri, supaya form lengkap tidak menampilkan
       // wallpaper HP di belakangnya.
-      theme: AppTheme.dark(),
+      theme: AppTheme.build(),
       locale: s.locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [

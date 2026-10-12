@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,6 +143,16 @@ class _KakeiboScreenState extends ConsumerState<KakeiboScreen> {
             ),
             IconButton(onPressed: () => setState(() => _offset++), icon: const Icon(Icons.chevron_right)),
           ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Text(
+              t.t(
+                'Cara Jepang mengatur uang rumah tangga: tulis rencana di awal bulan, kelompokkan pengeluaran ke empat jenis, lalu lihat lagi di akhir bulan. Target menabung yang kamu isi di sini ikut mengurangi jatah aman dipakai di beranda.',
+                'A Japanese way of running household money: plan at the start of the month, sort spending into four kinds, then look back at the end. The savings goal you set here also lowers the safe to spend figure on your home screen.',
+              ),
+              style: AppTheme.sans(size: 12, color: WaColors.washiMuted, height: 1.5),
+            ),
+          ),
           SectionHeader(title: t.t('Rencana bulan ini', "This month's plan"), jp: '一'),
           WaCard(
             child: Column(children: [

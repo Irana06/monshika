@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 /// Konfigurasi OAuth Google (Google Auth Platform, project `shicomp-005231`).
 ///
 /// Client ID bukan rahasia — aman disimpan di repo. Bisa juga dioverride saat

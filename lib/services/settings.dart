@@ -1,12 +1,20 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
+import 'dart:ui' show Brightness, PlatformDispatcher;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/theme/app_colors.dart';
 import '../l10n/strings.dart';
 
 class AppSettings {
   const AppSettings({
     this.userName = '',
     this.language = 'id',
+    this.themeMode = 'system',
     this.japaneseStyle = false,
     this.baseCurrency = 'IDR',
     this.monthStartDay = 1,
@@ -38,6 +46,9 @@ class AppSettings {
   /// id | en
   final String language;
 
+  /// `system`, `light`, atau `dark`.
+  final String themeMode;
+
   /// Ikon kanji & label Jepang. Default mati.
   final bool japaneseStyle;
   final String baseCurrency;
@@ -68,6 +79,19 @@ class AppSettings {
 
   S get strings => S(en: language == 'en', jp: japaneseStyle);
 
+  /// Palet yang dipakai, mengikuti setelan HP kalau [themeMode] `system`.
+  WaPalette paletteFor(Brightness platform) => paletteOf(themeMode, platform);
+
+  static WaPalette paletteOf(String mode, Brightness platform) => switch (mode) {
+        'light' => kWaLight,
+        'dark' => kWaDark,
+        _ => platform == Brightness.light ? kWaLight : kWaDark,
+      };
+
+  /// Dipakai di luar pohon widget: isolate latar, widget beranda, dan bootstrap.
+  static WaPalette paletteFromPrefs(SharedPreferences p) =>
+      paletteOf(p.getString('themeMode') ?? 'system', PlatformDispatcher.instance.platformBrightness);
+
   static AppSettings fromPrefs(SharedPreferences p) {
     DateTime? dt(String k) {
       final v = p.getInt(k);
@@ -77,6 +101,7 @@ class AppSettings {
     return AppSettings(
       userName: p.getString('userName') ?? '',
       language: p.getString('language') ?? S.defaultLanguage(),
+      themeMode: p.getString('themeMode') ?? 'system',
       japaneseStyle: p.getBool('japaneseStyle') ?? false,
       baseCurrency: p.getString('baseCurrency') ?? 'IDR',
       monthStartDay: p.getInt('monthStartDay') ?? 1,
@@ -138,6 +163,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setUserName(String v) => _set('userName', v);
   Future<void> setLanguage(String v) => _set('language', v);
+  Future<void> setThemeMode(String v) => _set('themeMode', v);
   Future<void> setJapaneseStyle(bool v) => _set('japaneseStyle', v);
   Future<void> setBaseCurrency(String v) => _set('baseCurrency', v);
   Future<void> setMonthStartDay(int v) => _set('monthStartDay', v);

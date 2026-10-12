@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,7 +82,7 @@ class MoreScreen extends ConsumerWidget {
                   progress: (streak / 30).clamp(0.05, 1),
                   size: 64,
                   color: WaColors.beni,
-                  child: const GlyphIcon('鹿', color: WaColors.washi, size: 26),
+                  child: GlyphIcon('鹿', color: WaColors.washi, size: 26),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -102,14 +106,14 @@ class MoreScreen extends ConsumerWidget {
           ),
           const UpdateBanner(),
           for (final g in _groups(t)) ...[
-            SectionHeader(title: g.$2, jp: g.$1),
+            SectionHeader(title: g.$2, jp: g.$1, dense: true),
             GridView.count(
               crossAxisCount: 4,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
+              mainAxisSpacing: 6,
               crossAxisSpacing: 10,
-              childAspectRatio: 0.82,
+              childAspectRatio: 0.95,
               children: [
                 for (final item in g.$3)
                   InkWell(
@@ -127,7 +131,7 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
           ],
-          SectionHeader(title: t.t('Dukung Monshika', 'Support Monshika'), jp: '援'),
+          SectionHeader(title: t.t('Dukung Monshika', 'Support Monshika'), jp: '援', dense: true),
           const SupportCard(),
           const SizedBox(height: 24),
           Center(

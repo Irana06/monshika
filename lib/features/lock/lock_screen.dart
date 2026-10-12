@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -70,7 +74,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               size: 110,
               color: WaColors.beni,
               trackColor: Colors.transparent,
-              child: const GlyphIcon('鍵', color: WaColors.washi, size: 44),
+              child: GlyphIcon('鍵', color: WaColors.washi, size: 44),
             ),
             const SizedBox(height: 20),
             Text(s.t('Masukkan PIN', 'Enter your PIN'), style: AppTheme.serif(size: 22, weight: FontWeight.w600)),
@@ -91,7 +95,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   ? IconButton(
                       iconSize: 30,
                       onPressed: _tryBiometric,
-                      icon: const Icon(Icons.fingerprint, color: WaColors.accent),
+                      icon: Icon(Icons.fingerprint, color: WaColors.accent),
                     )
                   : null,
             ),

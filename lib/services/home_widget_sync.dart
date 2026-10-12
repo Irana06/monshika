@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -7,6 +11,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/kanji_icons.dart';
+import 'settings.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/dates.dart';
 import '../core/utils/money.dart';
@@ -45,6 +50,7 @@ abstract final class HomeWidgetSync {
     await prefs.reload();
     final s = S.fromPrefs(prefs);
     S.current = s;
+    WaColors.current = AppSettings.paletteFromPrefs(prefs);
     Intl.defaultLocale = s.dateLocale;
     // Glyph kanji hanya dikirim saat gaya Jepang aktif. Emoji buatan pengguna tetap dikirim.
     String glyph(String g) => s.jp || iconForGlyph(g) == null ? g : '';
@@ -309,7 +315,7 @@ class WidgetChartImage extends StatelessWidget {
                         Expanded(
                           child: Text(l,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 11, color: WaColors.washiMuted, decoration: TextDecoration.none)),
+                              style: TextStyle(fontSize: 11, color: WaColors.washiMuted, decoration: TextDecoration.none)),
                         ),
                     ],
                   ),
@@ -325,7 +331,7 @@ class WidgetChartImage extends StatelessWidget {
                 children: [
                   if (breakdown.isEmpty)
                     Text(emptyText,
-                        style: const TextStyle(fontSize: 12, color: WaColors.washiMuted, decoration: TextDecoration.none)),
+                        style: TextStyle(fontSize: 12, color: WaColors.washiMuted, decoration: TextDecoration.none)),
                   for (final b in breakdown)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -336,7 +342,7 @@ class WidgetChartImage extends StatelessWidget {
                             '${b.$1} · ${totalBreak == 0 ? 0 : (b.$2 / totalBreak * 100).round()}%',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, color: WaColors.washi, decoration: TextDecoration.none),
+                            style: TextStyle(fontSize: 11, color: WaColors.washi, decoration: TextDecoration.none),
                           ),
                           const SizedBox(height: 3),
                           ClipRRect(

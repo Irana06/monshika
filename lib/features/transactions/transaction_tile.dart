@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -68,11 +72,11 @@ class TransactionTile extends ConsumerWidget {
                       ),
                       if (tx.recurringId != null) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.repeat, size: 13, color: WaColors.washiMuted),
+                        Icon(Icons.repeat, size: 13, color: WaColors.washiMuted),
                       ],
                       if (tx.receiptPath != null) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.receipt_long, size: 13, color: WaColors.washiMuted),
+                        Icon(Icons.receipt_long, size: 13, color: WaColors.washiMuted),
                       ],
                     ],
                   ),

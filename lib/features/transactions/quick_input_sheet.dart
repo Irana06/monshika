@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -155,7 +159,7 @@ class _QuickInputPanelState extends ConsumerState<QuickInputPanel> {
             style: AppTheme.sans(size: 17),
             decoration: InputDecoration(
               hintText: t.t('Contoh: kopi 25rb, gojek 18.500 ovo, +8jt gaji', 'e.g. coffee 5, lunch 12 cash, +3000 salary'),
-              prefixIcon: const Icon(Icons.bolt, color: WaColors.accent),
+              prefixIcon: Icon(Icons.bolt, color: WaColors.accent),
             ),
           ),
           const SizedBox(height: 12),

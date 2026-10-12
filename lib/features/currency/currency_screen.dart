@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -141,7 +145,7 @@ class _CurrencyScreenState extends ConsumerState<CurrencyScreen> {
                 ]),
                 const SizedBox(height: 12),
                 Row(children: [
-                  const Icon(Icons.south, color: WaColors.accent),
+                  Icon(Icons.south, color: WaColors.accent),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

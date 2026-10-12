@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -153,7 +157,7 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
               children: [
                 Row(
                   children: [
-                    const KanjiBadge(glyph: '私', color: WaColors.accent, size: 36),
+                    KanjiBadge(glyph: '私', color: WaColors.accent, size: 36),
                     const SizedBox(width: 10),
                     Expanded(child: Text(t.t('Aku', 'Me'))),
                     SizedBox(

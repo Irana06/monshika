@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
@@ -160,7 +164,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           ListTile(leading: const Icon(Icons.photo_library), title: Text(t.t('Galeri', 'Gallery')), onTap: () => Navigator.pop(ctx, ImageSource.gallery)),
           if (_receiptPath != null)
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: WaColors.expense),
+              leading: Icon(Icons.delete_outline, color: WaColors.expense),
               title: Text(t.t('Hapus foto', 'Remove photo')),
               onTap: () {
                 Navigator.pop(ctx);

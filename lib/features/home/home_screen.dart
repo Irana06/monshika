@@ -1,3 +1,7 @@
+// Monshika · pengelola keuangan pribadi oleh Shicomp
+// Copyright (C) 2026 Irana06. Berlisensi GNU GPL-3.0, lihat berkas LICENSE.
+// https://github.com/Irana06/monshika
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -219,7 +223,7 @@ class _SafeToSpendCard extends ConsumerWidget {
             size: 78,
             child: t.jp
                 ? Text('今日', style: AppTheme.serif(size: 17, weight: FontWeight.w700))
-                : const Icon(Icons.today_outlined, size: 26, color: WaColors.washi),
+                : Icon(Icons.today_outlined, size: 26, color: WaColors.washi),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -246,7 +250,7 @@ class _SafeToSpendCard extends ConsumerWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.info_outline, size: 20, color: WaColors.washiMuted),
+            icon: Icon(Icons.info_outline, size: 20, color: WaColors.washiMuted),
             onPressed: () => showDialog<void>(
               context: context,
               builder: (_) => AlertDialog(
@@ -356,7 +360,7 @@ class _KakeiboPrompt extends ConsumerWidget {
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KakeiboScreen())),
         child: Row(
           children: [
-            const KanjiBadge(glyph: '簿', color: WaColors.accent, size: 44),
+            KanjiBadge(glyph: '簿', color: WaColors.accent, size: 44),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -371,7 +375,7 @@ class _KakeiboPrompt extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: WaColors.washiMuted),
+            Icon(Icons.chevron_right, color: WaColors.washiMuted),
           ],
         ),
       ),
@@ -402,7 +406,7 @@ class _QuickActions extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             children: [
               ActionChip(
-                avatar: const Icon(Icons.bolt, size: 18, color: WaColors.accent),
+                avatar: Icon(Icons.bolt, size: 18, color: WaColors.accent),
                 label: Text(t.t('Ketik cepat', 'Quick type')),
                 onPressed: () => showQuickInputSheet(context),
               ),
@@ -461,7 +465,7 @@ class _AccountsStrip extends ConsumerWidget {
                   width: 90,
                   child: WaCard(
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountFormScreen())),
-                    child: const Center(child: Icon(Icons.add, color: WaColors.washiMuted)),
+                    child: Center(child: Icon(Icons.add, color: WaColors.washiMuted)),
                   ),
                 );
               }
