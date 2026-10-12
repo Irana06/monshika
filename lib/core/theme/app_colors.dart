@@ -23,6 +23,8 @@ class WaPalette {
     required this.transfer,
     required this.accent,
     required this.secondary,
+    required this.heroTop,
+    required this.heroBottom,
   });
 
   final Brightness brightness;
@@ -49,6 +51,10 @@ class WaPalette {
   final Color accent;
   final Color secondary;
 
+  /// Gradien kartu total saldo di beranda.
+  final Color heroTop;
+  final Color heroBottom;
+
   bool get isLight => brightness == Brightness.light;
 }
 
@@ -67,6 +73,8 @@ const kWaDark = WaPalette(
   transfer: Color(0xFF9C86C2),
   accent: Color(0xFFE35A57),
   secondary: Color(0xFF7E9AC8),
+  heroTop: Color(0xFF3A2A21),
+  heroBottom: Color(0xFF1F1612),
 );
 
 /// Mode terang, nuansa washi. Merah dan hijaunya digelapkan supaya kontrasnya
@@ -85,6 +93,8 @@ const kWaLight = WaPalette(
   transfer: Color(0xFF6B52A3),
   accent: Color(0xFFD53B3A),
   secondary: Color(0xFF39508C),
+  heroTop: Color(0xFFF9E7D6),
+  heroBottom: Color(0xFFFFFCF9),
 );
 
 /// Palet "Wa" (和色), warna tradisional Jepang.
@@ -111,6 +121,8 @@ abstract final class WaColors {
   static Color get transfer => current.transfer;
   static Color get accent => current.accent;
   static Color get secondary => current.secondary;
+  static Color get heroTop => current.heroTop;
+  static Color get heroBottom => current.heroBottom;
 
   // Palet kategori. Tetap sama di kedua mode karena tersimpan di database.
   static const beni = Color(0xFFD9534A);

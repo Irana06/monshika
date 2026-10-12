@@ -107,29 +107,42 @@ class MoreScreen extends ConsumerWidget {
           const UpdateBanner(),
           for (final g in _groups(t)) ...[
             SectionHeader(title: g.$2, jp: g.$1, dense: true),
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.95,
-              children: [
-                for (final item in g.$3)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: item.builder)),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        KanjiBadge(glyph: item.kanji, color: item.color, size: 50),
-                        const SizedBox(height: 6),
-                        Text(item.label, textAlign: TextAlign.center, maxLines: 2, style: AppTheme.sans(size: 11.5, height: 1.15)),
-                      ],
+            // Wrap, bukan GridView: tingginya mengikuti isi, jadi tidak ada
+            // ruang sisa dari rasio kotak seperti sebelumnya.
+            LayoutBuilder(builder: (context, c) {
+              const gap = 10.0;
+              final w = (c.maxWidth - gap * 3) / 4;
+              return Wrap(
+                spacing: gap,
+                runSpacing: 4,
+                children: [
+                  for (final item in g.$3)
+                    SizedBox(
+                      width: w,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: item.builder)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            children: [
+                              KanjiBadge(glyph: item.kanji, color: item.color, size: 50),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.label,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTheme.sans(size: 11.5, height: 1.15),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              );
+            }),
           ],
           SectionHeader(title: t.t('Dukung Monshika', 'Support Monshika'), jp: '援', dense: true),
           const SupportCard(),

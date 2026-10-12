@@ -117,10 +117,10 @@ class _BalanceCard extends ConsumerWidget {
     return WaCard(
       pattern: true,
       padding: const EdgeInsets.all(20),
-      gradient: const LinearGradient(
+      gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF1C2233), Color(0xFF15151C)],
+        colors: [WaColors.heroTop, WaColors.heroBottom],
       ),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsScreen())),
       child: Column(
