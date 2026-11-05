@@ -148,6 +148,7 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: p.surfaceHigh,
         contentTextStyle: sans(size: 14),
+        actionTextColor: p.accent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
