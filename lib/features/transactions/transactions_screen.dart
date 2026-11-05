@@ -262,21 +262,21 @@ class _DismissibleTx extends ConsumerWidget {
         color: WaColors.expense.withValues(alpha: 0.2),
         child: Icon(Icons.delete_outline, color: WaColors.expense),
       ),
-      confirmDismiss: (_) async => tx.debtId == null && tx.goalId == null
-          ? true
-          : confirmDialog(
-              context,
-              title: t.t('Hapus transaksi ini?', 'Delete this transaction?'),
-              message: t.t('Transaksi ini terhubung ke utang atau target. Catatan pembayarannya juga ikut terhapus.',
-                  "This one is linked to a debt or goal. Its payment record will be deleted too."),
-            ),
+      confirmDismiss: (_) async => confirmDialog(
+        context,
+        title: t.t('Hapus transaksi ini?', 'Delete this transaction?'),
+        message: tx.debtId == null && tx.goalId == null
+            ? t.t('Transaksi ini akan dihapus dari catatanmu.', 'This transaction will be removed from your records.')
+            : t.t('Transaksi ini terhubung ke utang atau target. Catatan pembayarannya juga ikut terhapus.',
+                'This one is linked to a debt or goal. Its payment record will be deleted too.'),
+      ),
       onDismissed: (_) async {
         final db = ref.read(databaseProvider);
         final tags = await db.getTagIdsFor(tx.id);
         await db.deleteTransaction(tx.id);
         if (!context.mounted) return;
         showSnack(context, t.t('Transaksi dihapus', 'Transaction deleted'), actionLabel: t.t('Batalkan', 'Undo'), onAction: () {
-          db.saveTransaction(tx.toCompanion(true), tagIds: tags);
+          db.restoreTransaction(tx.toCompanion(true), tagIds: tags);
         });
       },
       child: TransactionTile(tx: tx),

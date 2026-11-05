@@ -248,6 +248,14 @@ FROM accounts a
         return id;
       });
 
+  /// Mengembalikan transaksi yang baru dihapus dengan id aslinya (untuk Batalkan).
+  Future<void> restoreTransaction(TransactionsCompanion data, {List<int>? tagIds}) => transaction(() async {
+        await into(transactions).insert(data, mode: InsertMode.insertOrReplace);
+        for (final tagId in tagIds ?? const <int>[]) {
+          await into(transactionTags).insert(TxTag(transactionId: data.id.value, tagId: tagId));
+        }
+      });
+
   Future<void> deleteTransaction(int id) => transaction(() async {
         await (delete(transactionTags)..where((t) => t.transactionId.equals(id))).go();
         await (delete(goalEntries)..where((g) => g.transactionId.equals(id))).go();
