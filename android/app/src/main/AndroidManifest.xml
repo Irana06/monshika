@@ -33,6 +33,12 @@
             <intent-filter>
                 <action android:name="es.antonborri.home_widget.action.LAUNCH" />
             </intent-filter>
+            <!-- Screenshot bukti bayar dari menu Bagikan aplikasi lain -->
+            <intent-filter android:label="@string/share_receipt">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
         </activity>
 
         <!-- Dialog quick-add dari widget beranda (tanpa membuka aplikasi utama) -->
@@ -113,6 +119,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Model pembaca teks ML Kit diunduh lewat Play Services -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
     </application>
 
     <queries>

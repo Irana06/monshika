@@ -23,6 +23,7 @@ import 'l10n/strings.dart';
 import 'providers/providers.dart';
 import 'services/app_services.dart';
 import 'services/home_widget_sync.dart';
+import 'services/receipt_scanner.dart';
 import 'services/update_service.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -38,6 +39,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
   bool _locked = false;
   DateTime? _pausedAt;
   StreamSubscription<Uri?>? _widgetClicks;
+  StreamSubscription<void>? _shares;
   StreamSubscription<Object>? _dbChanges;
   Timer? _widgetDebounce;
   bool _updateSheetOpen = false;
@@ -65,6 +67,8 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
     if (isMobile) {
       HomeWidget.initiallyLaunchedFromHomeWidget().then(_handleWidgetUri);
       _widgetClicks = HomeWidget.widgetClicked.listen(_handleWidgetUri);
+      _shares = ReceiptScanner.onShared.listen((_) => _openSharedReceipt());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openSharedReceipt());
     }
   }
 
@@ -72,6 +76,7 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _widgetClicks?.cancel();
+    _shares?.cancel();
     _dbChanges?.cancel();
     _widgetDebounce?.cancel();
     super.dispose();
@@ -110,7 +115,20 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
       _pausedAt = null;
       runStartupTasks(db, settings);
       _checkForUpdate();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openSharedReceipt());
     }
+  }
+
+  /// Screenshot bukti bayar dari menu Bagikan: buka form transaksi yang terisi
+  /// otomatis. Kalau aplikasi masih terkunci, gambarnya menunggu sampai dibuka.
+  Future<void> _openSharedReceipt() async {
+    if (!isMobile) return;
+    final settings = ref.read(settingsProvider);
+    if (!settings.onboardingDone || (_locked && settings.lockEnabled)) return;
+    final path = await ReceiptScanner.takeSharedImage();
+    final nav = rootNavigatorKey.currentState;
+    if (path == null || nav == null) return;
+    nav.push(MaterialPageRoute(builder: (_) => TransactionFormScreen(sharedImagePath: path)));
   }
 
   void _handleWidgetUri(Uri? uri) {
@@ -144,7 +162,10 @@ class _MonshikaAppState extends ConsumerState<MonshikaApp> with WidgetsBindingOb
     } else if (_locked && settings.lockEnabled) {
       home = LockScreen(onUnlocked: () {
         setState(() => _locked = false);
-        WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkForUpdate();
+          _openSharedReceipt();
+        });
       });
     } else {
       home = const AppShell();

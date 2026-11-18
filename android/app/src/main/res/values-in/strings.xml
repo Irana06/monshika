@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="share_receipt">Catat di Monshika</string>
     <string name="widget_quick_add">Monshika · Catat cepat</string>
     <string name="widget_quick_add_desc">Catat pengeluaran atau pemasukan tanpa buka aplikasi</string>
     <string name="widget_summary">Monshika · Ringkasan</string>

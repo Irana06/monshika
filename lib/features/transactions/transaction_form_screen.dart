@@ -23,6 +23,8 @@ import '../../providers/providers.dart';
 import '../../services/finance.dart';
 import '../../services/money_actions.dart';
 import '../../services/notification_service.dart';
+import '../../services/receipt_parser.dart';
+import '../../services/receipt_scanner.dart';
 import '../common/pickers.dart';
 import '../split_bill/split_bill_screen.dart';
 import 'calc_pad.dart';
@@ -37,6 +39,7 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialNote,
     this.onSaved,
+    this.sharedImagePath,
   });
 
   final TxEntry? existing;
@@ -48,6 +51,9 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
 
   /// Bila diisi, dipanggil setelah simpan (mis. dialog catat cepat menutup activity).
   final VoidCallback? onSaved;
+
+  /// Screenshot bukti bayar dari menu Bagikan: dibaca, lalu mengisi form.
+  final String? sharedImagePath;
 
   @override
   ConsumerState<TransactionFormScreen> createState() => _TransactionFormScreenState();
@@ -72,6 +78,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   bool _exclude = false;
   bool _showPad = true;
   bool _saving = false;
+  bool _scanning = false;
 
   bool get _isEdit => widget.existing != null;
 
@@ -106,6 +113,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         if (!mounted || accounts.isEmpty) return;
         setState(() => _accountId = accounts.any((a) => a.id == def) ? def : accounts.first.id);
       }
+      if (widget.sharedImagePath != null && mounted) _scanImage(widget.sharedImagePath!, attach: true);
     });
   }
 
@@ -182,6 +190,55 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final dest = p.join(dir.path, '${DateTime.now().millisecondsSinceEpoch}${p.extension(file.path)}');
     await File(file.path).copy(dest);
     setState(() => _receiptPath = dest);
+    // Transaksi baru yang belum diisi: coba isi otomatis dari gambarnya.
+    if (!_isEdit && _calc.value == 0 && mounted) await _scanImage(dest, attach: false);
+  }
+
+  Future<void> _scanImage(String path, {required bool attach}) async {
+    final t = S.of(context);
+    setState(() => _scanning = true);
+    if (attach) {
+      final kept = await ReceiptScanner.keepAsReceipt(path);
+      if (mounted) setState(() => _receiptPath = kept);
+    }
+    final all = ref.read(accountsProvider).value ?? await ref.read(databaseProvider).getAccounts();
+    final accounts = [for (final a in all) if (!a.archived) ReceiptAccount(a.id, a.name)];
+    final res = await ReceiptScanner.scan(path, accounts);
+    if (!mounted) return;
+    _applyDraft(res.draft);
+    setState(() => _scanning = false);
+    final msg = switch (res.failure) {
+      null => t.t('Terisi dari bukti bayar. Cek lagi nominal, akun, dan kategorinya sebelum simpan.',
+          'Filled in from the receipt. Check the amount, account and category before saving.'),
+      ScanFailure.modelDownloading => t.t(
+          'Pembaca teks masih diunduh Google Play Services. Coba lagi sebentar, atau isi manual dulu.',
+          'Google Play Services is still downloading the text reader. Try again shortly, or fill it in by hand.'),
+      ScanFailure.unreadable => t.t('Teks di gambar tidak terbaca. Isi manual ya, gambarnya tetap terlampir.',
+          "Couldn't read the text in this image. Fill it in by hand; the image stays attached."),
+      ScanFailure.unsupported => null,
+    };
+    if (msg != null) showSnack(context, msg);
+  }
+
+  /// Masukkan hasil baca ke form. Isian yang sudah diketik pengguna tidak ditimpa.
+  void _applyDraft(ReceiptDraft d) {
+    if (d.isEmpty) return;
+    if (d.type != _type) {
+      _type = d.type;
+      _categoryId = null;
+    }
+    if (d.fromAccountId != null) _accountId = d.fromAccountId;
+    if (_type == 'transfer') {
+      if (d.toAccountId != null && d.toAccountId != _accountId) _toAccountId = d.toAccountId;
+      if (d.fee > 0) {
+        _fee = d.fee;
+        _feeCtrl.text = _plain(d.fee);
+      }
+    }
+    if (d.payee != null && _payee.text.trim().isEmpty) _payee.text = d.payee!;
+    if (d.date != null) _date = d.date!;
+    // Terakhir, karena listener nominal ikut menyinkronkan nominal tujuan transfer.
+    if (d.amount != null) _calc.setValue(d.amount!);
   }
 
   Future<void> _pickTags() async {
@@ -361,6 +418,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       ),
       body: Column(
         children: [
+          if (_scanning) LinearProgressIndicator(minHeight: 2, color: WaColors.accent, backgroundColor: Colors.transparent),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: SizedBox(

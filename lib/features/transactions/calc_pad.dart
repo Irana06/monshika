@@ -24,6 +24,12 @@ class CalcController extends ChangeNotifier {
 
   double get value => _evaluate(_expr);
 
+  /// Ganti isi kalkulator dengan satu angka (mis. hasil baca bukti bayar).
+  void setValue(double v) {
+    _expr = v <= 0 ? '' : (v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2));
+    notifyListeners();
+  }
+
   static bool _isOp(String c) => '+-*/'.contains(c);
 
   void input(String key) {

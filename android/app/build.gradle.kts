@@ -69,4 +69,6 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.appcompat:appcompat:1.7.1")
+    // Pembaca teks bukti bayar; model diunduh Play Services, tidak dibundel di APK.
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 }

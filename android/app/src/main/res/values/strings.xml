@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Monshika</string>
+    <string name="share_receipt">Log in Monshika</string>
 
     <string name="widget_quick_add">Monshika · Quick add</string>
     <string name="widget_quick_add_desc">Log spending or income without opening the app</string>
